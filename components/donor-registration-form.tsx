@@ -27,6 +27,8 @@ export function DonorRegistrationForm() {
     dob: "",
     mobile: "",
     email: "",
+    password: "",           // ✅ ADD THIS
+    confirmPassword: "",
     bloodGroup: "",
     lastDonation: "",
     weight: "",
@@ -42,6 +44,11 @@ export function DonorRegistrationForm() {
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
+
+  const passwordsMatch =
+  formData.password &&
+  formData.confirmPassword &&
+  formData.password === formData.confirmPassword
 
   const isEligible = Number(formData.weight) >= 50 && !formData.chronicDisease
   const progress = (currentStep / steps.length) * 100
@@ -184,6 +191,42 @@ export function DonorRegistrationForm() {
                 onChange={(e) => updateField("email", e.target.value)}
               />
             </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Create Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter password"
+                  className="rounded-xl"
+                  value={formData.password}
+                  onChange={(e) => updateField("password", e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Confirm Password
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm password"
+                  className="rounded-xl"
+                  value={formData.confirmPassword}
+                  onChange={(e) => updateField("confirmPassword", e.target.value)}
+                />
+              </div>
+            </div>
+
+            {formData.confirmPassword && !passwordsMatch && (
+              <p className="text-sm text-red-500 mt-1">
+                Passwords do not match
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -484,7 +527,10 @@ export function DonorRegistrationForm() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button className="gap-2 rounded-xl shadow-sm shadow-primary/20">
+            <Button
+              disabled={!passwordsMatch}
+              className="gap-2 rounded-xl shadow-sm shadow-primary/20"
+            >
             <Check className="h-4 w-4" />
             Register as Donor
           </Button>

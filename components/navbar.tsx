@@ -4,15 +4,15 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle  } from "@/components/ui/sheet"
 import { Menu, Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/find-donor", label: "Find Donor" },
-  { href: "/register-donor", label: "Become Donor" },
-  { href: "/hospital-signup", label: "Hospital Login" },
+  { href: "/donor/login", label: "Donor Login" },
+  { href: "/hospital/login", label: "Hospital Login" },
   { href: "/dashboard", label: "Dashboard" },
 ]
 
@@ -86,6 +86,9 @@ export function Navbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-80 p-0">
+            <SheetTitle className="sr-only">
+              Mobile Navigation Menu
+            </SheetTitle>
             <div className="flex h-full flex-col">
               <div className="flex items-center gap-2.5 border-b border-border p-5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">

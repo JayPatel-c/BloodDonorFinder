@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +27,7 @@ import {
   FileText,
   LogOut,
 } from "lucide-react"
+import { clearAuth } from "@/lib/api"
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Overview", id: "overview" },
@@ -55,6 +57,12 @@ export function AdminPanel() {
   const [activeTab, setActiveTab] = useState("overview")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const router = useRouter()
+
+  const handleLogout = () => {
+    clearAuth()
+    router.push("/")
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
@@ -113,7 +121,7 @@ export function AdminPanel() {
         </nav>
 
         <div className="border-t border-border p-3">
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+          <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
             <LogOut className="h-[18px] w-[18px]" />
             Logout
           </button>

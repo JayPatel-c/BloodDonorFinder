@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Check, ChevronLeft, ChevronRight, User, Stethoscope, MapPin, Bell, Shield } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight, User, Stethoscope, MapPin, Bell, Shield, Loader2 } from "lucide-react"
+import { registerDonor, saveAuth } from "@/lib/api"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
@@ -20,7 +22,10 @@ const steps = [
 ]
 
 export function DonorRegistrationForm() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     fullName: "",
     gender: "",
@@ -53,8 +58,47 @@ export function DonorRegistrationForm() {
   const isEligible = Number(formData.weight) >= 50 && !formData.chronicDisease
   const progress = (currentStep / steps.length) * 100
 
+  const handleSubmit = async () => {
+    setLoading(true)
+    setError("")
+    try {
+      // Calculate age from DOB
+      const birthDate = new Date(formData.dob)
+      const today = new Date()
+      let age = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--
+
+      const data = await registerDonor({
+        full_name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.mobile,
+        blood_group: formData.bloodGroup,
+        age,
+        gender: formData.gender,
+        city: formData.city,
+        address: formData.address || undefined,
+        last_donation_date: formData.lastDonation || null,
+        medical_conditions: formData.chronicDisease ? "Has chronic conditions" : undefined,
+        weight: formData.weight ? Number(formData.weight) : null,
+      })
+      saveAuth(data)
+      router.push("/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
       {/* Progress bar */}
       <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -528,11 +572,15 @@ export function DonorRegistrationForm() {
           </Button>
         ) : (
             <Button
-              disabled={!passwordsMatch}
+              disabled={!passwordsMatch || loading}
+              onClick={handleSubmit}
               className="gap-2 rounded-xl shadow-sm shadow-primary/20"
             >
-            <Check className="h-4 w-4" />
-            Register as Donor
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Registering...</>
+            ) : (
+              <><Check className="h-4 w-4" /> Register as Donor</>
+            )}
           </Button>
         )}
       </div>

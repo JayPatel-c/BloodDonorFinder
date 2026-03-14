@@ -5,16 +5,33 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Shield, Eye, EyeOff } from "lucide-react"
+import { Shield, Eye, EyeOff, Loader2 } from "lucide-react"
+import { loginAdmin, saveAuth } from "@/lib/api"
 
 export function AdminLoginForm({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const router = useRouter()
   
   const isFormValid = email && password
+
+  const handleLogin = async () => {
+    setLoading(true)
+    setError("")
+    try {
+      const data = await loginAdmin(email, password)
+      saveAuth(data)
+      router.push("/admin/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please check your credentials.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
@@ -34,6 +51,12 @@ export function AdminLoginForm({ onLogin }: { onLogin: () => void }) {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
@@ -61,6 +84,7 @@ export function AdminLoginForm({ onLogin }: { onLogin: () => void }) {
             className="rounded-xl pr-10"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && isFormValid && handleLogin()}
           />
           <button
             type="button"
@@ -71,14 +95,21 @@ export function AdminLoginForm({ onLogin }: { onLogin: () => void }) {
           </button>
         </div>
 
-<Button
-  disabled={!isFormValid}
-  onClick={() => router.push("/admin/dashboard")}
-  className="rounded-xl shadow-sm shadow-primary/20 disabled:opacity-50"
->
-  Login as Admin
-</Button>
+        <Button
+          disabled={!isFormValid || loading}
+          onClick={handleLogin}
+          className="rounded-xl shadow-sm shadow-primary/20 disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Logging in...
+            </>
+          ) : (
+            "Login as Admin"
+          )}
+        </Button>
       </div>
     </div>
   )
-}
+}

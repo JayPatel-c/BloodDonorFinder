@@ -1,39 +1,54 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Phone, MessageSquare, MapPin, Clock, Droplets, Filter, Search, X, SlidersHorizontal } from "lucide-react"
+import { Phone, MessageSquare, MapPin, Clock, Droplets, Filter, Search, X, SlidersHorizontal, Loader2 } from "lucide-react"
+import { searchDonors, type DonorResult } from "@/lib/api"
 
 const bloodGroups = ["All", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
-const mockDonors = [
-  { id: 1, name: "Rahul Sharma", bloodGroup: "O+", city: "Ahmedabad", lastDonation: "2025-09-15", available: true, distance: "2.3 km" },
-  { id: 2, name: "Priya Patel", bloodGroup: "A+", city: "Ahmedabad", lastDonation: "2025-11-02", available: true, distance: "3.1 km" },
-  { id: 3, name: "Amit Desai", bloodGroup: "B+", city: "Gandhinagar", lastDonation: "2025-06-20", available: false, distance: "5.7 km" },
-  { id: 4, name: "Neha Joshi", bloodGroup: "AB-", city: "Ahmedabad", lastDonation: "2025-10-10", available: true, distance: "1.8 km" },
-  { id: 5, name: "Vijay Kumar", bloodGroup: "O-", city: "Surat", lastDonation: "2025-08-05", available: true, distance: "4.2 km" },
-  { id: 6, name: "Sita Rao", bloodGroup: "A-", city: "Vadodara", lastDonation: "2025-12-01", available: true, distance: "6.5 km" },
-  { id: 7, name: "Karan Singh", bloodGroup: "B-", city: "Ahmedabad", lastDonation: "2025-07-14", available: false, distance: "3.8 km" },
-  { id: 8, name: "Meera Thakur", bloodGroup: "AB+", city: "Rajkot", lastDonation: "2025-11-20", available: true, distance: "7.1 km" },
-]
-
 export function DonorSearch() {
-  const [selectedBloodGroup, setSelectedBloodGroup] = useState("All")
-  const [locationFilter, setLocationFilter] = useState("")
+  const searchParams = useSearchParams()
+  const [selectedBloodGroup, setSelectedBloodGroup] = useState(searchParams.get("blood_group") || "All")
+  const [locationFilter, setLocationFilter] = useState(searchParams.get("city") || "")
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [donors, setDonors] = useState<DonorResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const filteredDonors = mockDonors.filter((donor) => {
-    if (selectedBloodGroup !== "All" && donor.bloodGroup !== selectedBloodGroup) return false
-    if (locationFilter && !donor.city.toLowerCase().includes(locationFilter.toLowerCase())) return false
-    if (showAvailableOnly && !donor.available) return false
-    return true
-  })
+  // Fetch donors from API whenever filters change
+  useEffect(() => {
+    const fetchDonors = async () => {
+      setLoading(true)
+      setError("")
+      try {
+        const params: { blood_group?: string; city?: string; is_available?: boolean } = {}
+        if (selectedBloodGroup !== "All") params.blood_group = selectedBloodGroup
+        if (locationFilter) params.city = locationFilter
+        if (showAvailableOnly) params.is_available = true
+        const results = await searchDonors(params)
+        setDonors(results)
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch donors")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Debounce city input
+    const timer = setTimeout(fetchDonors, 300)
+    return () => clearTimeout(timer)
+  }, [selectedBloodGroup, locationFilter, showAvailableOnly])
+
+  const filteredDonors = donors
+
 
   const activeFilterCount = [
     selectedBloodGroup !== "All",
@@ -121,7 +136,7 @@ export function DonorSearch() {
         <div className="mb-5 flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">
-              Showing <span className="font-bold text-foreground">{filteredDonors.length}</span> donors
+              {loading ? "Searching..." : <>Showing <span className="font-bold text-foreground">{filteredDonors.length}</span> donors</>}
             </p>
           </div>
           <Button
@@ -147,37 +162,37 @@ export function DonorSearch() {
               className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/20 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/[0.04]"
             >
               {/* Availability indicator bar */}
-              <div className={`absolute top-0 left-0 h-1 w-full ${donor.available ? "bg-emerald-500" : "bg-muted"}`} />
+              <div className={`absolute top-0 left-0 h-1 w-full ${donor.is_available ? "bg-emerald-500" : "bg-muted"}`} />
 
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3.5">
                   <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary transition-transform group-hover:scale-105">
-                    {donor.name.split(" ").map((n) => n[0]).join("")}
-                    {donor.available && (
+                    {donor.full_name.split(" ").map((n: string) => n[0]).join("")}
+                    {donor.is_available && (
                       <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500" />
                     )}
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{donor.name}</p>
+                    <p className="font-semibold text-foreground">{donor.full_name}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3" />
-                      {donor.city} - {donor.distance}
+                      {donor.city}
                     </div>
                   </div>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm shadow-primary/20">
-                  {donor.bloodGroup}
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm shadow-primary/20">
+                  {donor.blood_group}
                 </div>
               </div>
 
               <div className="mt-5 flex items-center gap-5 border-t border-border pt-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
-                  Last: {new Date(donor.lastDonation).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
+                  {donor.last_donation_date ? `Last: ${new Date(donor.last_donation_date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}` : "No donations yet"}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Droplets className="h-3.5 w-3.5" />
-                  {donor.available ? (
+                  {donor.is_available ? (
                     <span className="font-semibold text-emerald-600">Available</span>
                   ) : (
                     <span className="font-semibold text-muted-foreground">Unavailable</span>
@@ -186,13 +201,31 @@ export function DonorSearch() {
               </div>
 
               <div className="mt-4 flex gap-2.5">
-                <Button size="sm" className="flex-1 gap-1.5 rounded-xl" disabled={!donor.available}>
-                  <Phone className="h-3.5 w-3.5" />
-                  Call
+                <Button size="sm" className="flex-1 gap-1.5 rounded-xl" disabled={!donor.is_available} asChild={donor.is_available && !!donor.phone}>
+                  {donor.is_available && donor.phone ? (
+                    <a href={`tel:${donor.phone}`}>
+                      <Phone className="h-3.5 w-3.5" />
+                      Call
+                    </a>
+                  ) : (
+                    <span>
+                      <Phone className="h-3.5 w-3.5" />
+                      Call
+                    </span>
+                  )}
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl" disabled={!donor.available}>
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Message
+                <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl" disabled={!donor.is_available} asChild={donor.is_available && !!donor.phone}>
+                  {donor.is_available && donor.phone ? (
+                    <a href={`sms:${donor.phone}`}>
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Message
+                    </a>
+                  ) : (
+                    <span>
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Message
+                    </span>
+                  )}
                 </Button>
               </div>
             </div>

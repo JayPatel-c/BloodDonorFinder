@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { DonorSearch } from "@/components/donor-search"
@@ -20,7 +21,9 @@ export default function FindDonorPage() {
               Find compatible blood donors near you. Filter by blood group, location, and availability.
             </p>
           </div>
-          <DonorSearch />
+          <Suspense fallback={<div className="py-12 text-center text-muted-foreground">Loading search...</div>}>
+            <DonorSearch />
+          </Suspense>
         </div>
       </main>
       <Footer />

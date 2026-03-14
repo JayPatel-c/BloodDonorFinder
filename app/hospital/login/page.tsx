@@ -7,16 +7,33 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Building2, Eye, EyeOff } from "lucide-react"
+import { Building2, Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { loginHospital, saveAuth } from "@/lib/api"
 
 export default function HospitalLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const isFormValid = email && password
+
+  const handleLogin = async () => {
+    setLoading(true)
+    setError("")
+    try {
+      const data = await loginHospital(email, password)
+      saveAuth(data)
+      router.push("/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -41,6 +58,12 @@ export default function HospitalLoginPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <Label>Email Address</Label>
@@ -62,6 +85,7 @@ export default function HospitalLoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="rounded-xl pr-10"
+                    onKeyDown={(e) => e.key === "Enter" && isFormValid && handleLogin()}
                   />
                   <button
                     type="button"
@@ -74,15 +98,22 @@ export default function HospitalLoginPage() {
               </div>
 
               <Button
-                disabled={!isFormValid}
-                onClick={() => router.push("/hospital-dashboard")}
+                disabled={!isFormValid || loading}
+                onClick={handleLogin}
                 className="rounded-xl shadow-sm shadow-primary/20 disabled:opacity-50"
               >
-                Login
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  "Login"
+                )}
               </Button>
 
               <p className="text-sm text-center text-muted-foreground">
-                Don’t have an account?{" "}
+                Don't have an account?{" "}
                 <Link href="/hospital-signup" className="text-primary font-medium">
                   Register here
                 </Link>

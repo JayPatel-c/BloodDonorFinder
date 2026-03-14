@@ -1,31 +1,51 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger, SheetTitle  } from "@/components/ui/sheet"
-import { Menu, Heart } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { Menu, Heart, LogOut, User, LayoutDashboard } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getAuth, clearAuth } from "@/lib/api"
 
-const navLinks = [
+const publicLinks = [
   { href: "/", label: "Home" },
   { href: "/find-donor", label: "Find Donor" },
-  { href: "/donor/login", label: "Donor Login" },
-  { href: "/hospital/login", label: "Hospital Login" },
-  { href: "/dashboard", label: "Dashboard" },
 ]
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [auth, setAuth] = useState<{ token: string; user_type: string | null; user_name: string | null } | null>(null)
   const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // Check auth on mount and pathname change
+  useEffect(() => {
+    setAuth(getAuth())
+  }, [pathname])
+
+  const handleLogout = () => {
+    clearAuth()
+    setAuth(null)
+    setOpen(false)
+    router.push("/")
+  }
+
+  const dashboardHref = auth?.user_type === "admin" ? "/admin/dashboard" : "/dashboard"
+  const userInitial = auth?.user_name ? auth.user_name.charAt(0).toUpperCase() : "U"
+
+  const navLinks = [
+    ...publicLinks,
+    ...(auth ? [{ href: dashboardHref, label: "Dashboard" }] : []),
+  ]
 
   return (
     <header
@@ -46,6 +66,7 @@ export function Navbar() {
           </span>
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden items-center gap-0.5 md:flex">
           {navLinks.map((link) => (
             <Link
@@ -66,18 +87,37 @@ export function Navbar() {
           ))}
         </nav>
 
+        {/* Desktop right side */}
         <div className="hidden items-center gap-2.5 md:flex">
-          <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
-            <Link href="/admin">Admin</Link>
-          </Button>
-          <Button size="sm" className="rounded-lg gap-2 shadow-sm shadow-primary/20" asChild>
-            <Link href="/register-donor">
-              <Heart className="h-3.5 w-3.5" fill="currentColor" />
-              Donate Now
-            </Link>
-          </Button>
+          {auth ? (
+            <>
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
+                  {userInitial}
+                </div>
+                <span className="text-sm font-medium text-foreground">{auth.user_name}</span>
+              </div>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={handleLogout}>
+                <LogOut className="h-3.5 w-3.5" />
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
+                <Link href="/login">Sign In</Link>
+              </Button>
+              <Button size="sm" className="rounded-lg gap-2 shadow-sm shadow-primary/20" asChild>
+                <Link href="/register-donor">
+                  <Heart className="h-3.5 w-3.5" fill="currentColor" />
+                  Donate Now
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
 
+        {/* Mobile menu */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild className="md:hidden">
             <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -98,6 +138,22 @@ export function Navbar() {
                   BloodLink
                 </span>
               </div>
+
+              {/* User info (if logged in) */}
+              {auth && (
+                <div className="border-b border-border p-4">
+                  <div className="flex items-center gap-3 rounded-xl bg-muted/50 p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
+                      {userInitial}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{auth.user_name}</p>
+                      <p className="text-xs capitalize text-muted-foreground">{auth.user_type}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <nav className="flex flex-1 flex-col gap-1 p-3">
                 {navLinks.map((link) => (
                   <Link
@@ -115,17 +171,27 @@ export function Navbar() {
                   </Link>
                 ))}
               </nav>
+
               <div className="border-t border-border p-4">
                 <div className="flex flex-col gap-2">
-                  <Button variant="outline" size="sm" className="rounded-lg" asChild>
-                    <Link href="/admin" onClick={() => setOpen(false)}>Admin</Link>
-                  </Button>
-                  <Button size="sm" className="rounded-lg gap-2" asChild>
-                    <Link href="/register-donor" onClick={() => setOpen(false)}>
-                      <Heart className="h-3.5 w-3.5" fill="currentColor" />
-                      Donate Now
-                    </Link>
-                  </Button>
+                  {auth ? (
+                    <Button variant="outline" size="sm" className="rounded-lg gap-2" onClick={handleLogout}>
+                      <LogOut className="h-3.5 w-3.5" />
+                      Logout
+                    </Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                        <Link href="/login" onClick={() => setOpen(false)}>Sign In</Link>
+                      </Button>
+                      <Button size="sm" className="rounded-lg gap-2" asChild>
+                        <Link href="/register-donor" onClick={() => setOpen(false)}>
+                          <Heart className="h-3.5 w-3.5" fill="currentColor" />
+                          Donate Now
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,11 +1,13 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Building2, User, MapPin, Lock, ChevronLeft, ChevronRight, Check, Upload, FileText, Shield } from "lucide-react"
+import { Building2, User, MapPin, Lock, ChevronLeft, ChevronRight, Check, Upload, FileText, Shield, Loader2 } from "lucide-react"
+import { registerHospital, saveAuth } from "@/lib/api"
 
 const formSteps = [
   { id: 1, title: "Hospital Info", icon: Building2 },
@@ -15,11 +17,66 @@ const formSteps = [
 ]
 
 export function HospitalSignupForm() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [formData, setFormData] = useState({
+    hospitalName: "",
+    hospitalType: "",
+    regNumber: "",
+    personName: "",
+    designation: "",
+    contactNumber: "",
+    address: "",
+    city: "",
+    district: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  })
   const progress = (currentStep / formSteps.length) * 100
+
+  const updateField = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSubmit = async () => {
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+    setLoading(true)
+    setError("")
+    try {
+      const data = await registerHospital({
+        name: formData.hospitalName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.contactNumber,
+        address: formData.address,
+        city: formData.city,
+        state: formData.district,
+        license_number: formData.regNumber,
+        hospital_type: formData.hospitalType,
+        contact_person: formData.personName,
+      })
+      saveAuth(data)
+      router.push("/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
       {/* Progress bar */}
       <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -75,12 +132,12 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospitalName" className="text-sm font-medium">Hospital Name</Label>
-              <Input id="hospitalName" placeholder="Enter hospital name" className="rounded-xl" />
+              <Input id="hospitalName" placeholder="Enter hospital name" className="rounded-xl" value={formData.hospitalName} onChange={(e) => updateField("hospitalName", e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium">Hospital Type</Label>
-              <Select>
+              <Select value={formData.hospitalType} onValueChange={(v) => updateField("hospitalType", v)}>
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -95,7 +152,7 @@ export function HospitalSignupForm() {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="regNumber" className="text-sm font-medium">Registration Number</Label>
-              <Input id="regNumber" placeholder="Hospital registration number" className="rounded-xl" />
+              <Input id="regNumber" placeholder="Hospital registration number" className="rounded-xl" value={formData.regNumber} onChange={(e) => updateField("regNumber", e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -136,7 +193,7 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="personName" className="text-sm font-medium">Full Name</Label>
-              <Input id="personName" placeholder="Authorized person name" className="rounded-xl" />
+              <Input id="personName" placeholder="Authorized person name" className="rounded-xl" value={formData.personName} onChange={(e) => updateField("personName", e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -146,7 +203,7 @@ export function HospitalSignupForm() {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="contactNumber" className="text-sm font-medium">Contact Number</Label>
-              <Input id="contactNumber" placeholder="+91 XXXXX XXXXX" className="rounded-xl" />
+              <Input id="contactNumber" placeholder="+91 XXXXX XXXXX" className="rounded-xl" value={formData.contactNumber} onChange={(e) => updateField("contactNumber", e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -187,17 +244,17 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospAddress" className="text-sm font-medium">Full Address</Label>
-              <Input id="hospAddress" placeholder="Street address, landmark" className="rounded-xl" />
+              <Input id="hospAddress" placeholder="Street address, landmark" className="rounded-xl" value={formData.address} onChange={(e) => updateField("address", e.target.value)} />
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="hospCity" className="text-sm font-medium">City</Label>
-                <Input id="hospCity" placeholder="Enter city" className="rounded-xl" />
+                <Input id="hospCity" placeholder="Enter city" className="rounded-xl" value={formData.city} onChange={(e) => updateField("city", e.target.value)} />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="hospDistrict" className="text-sm font-medium">District</Label>
-                <Input id="hospDistrict" placeholder="Enter district" className="rounded-xl" />
+                <Input id="hospDistrict" placeholder="Enter district" className="rounded-xl" value={formData.district} onChange={(e) => updateField("district", e.target.value)} />
               </div>
             </div>
 
@@ -236,17 +293,17 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospEmail" className="text-sm font-medium">Email Address</Label>
-              <Input id="hospEmail" type="email" placeholder="hospital@example.com" className="rounded-xl" />
+              <Input id="hospEmail" type="email" placeholder="hospital@example.com" className="rounded-xl" value={formData.email} onChange={(e) => updateField("email", e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospPassword" className="text-sm font-medium">Password</Label>
-              <Input id="hospPassword" type="password" placeholder="Create a strong password" className="rounded-xl" />
+              <Input id="hospPassword" type="password" placeholder="Create a strong password" className="rounded-xl" value={formData.password} onChange={(e) => updateField("password", e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
-              <Input id="confirmPassword" type="password" placeholder="Confirm your password" className="rounded-xl" />
+              <Input id="confirmPassword" type="password" placeholder="Confirm your password" className="rounded-xl" value={formData.confirmPassword} onChange={(e) => updateField("confirmPassword", e.target.value)} />
             </div>
 
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
@@ -295,9 +352,12 @@ export function HospitalSignupForm() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button className="gap-2 rounded-xl shadow-sm shadow-primary/20">
-            <Check className="h-4 w-4" />
-            Request Verification
+          <Button onClick={handleSubmit} disabled={loading} className="gap-2 rounded-xl shadow-sm shadow-primary/20">
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</>
+            ) : (
+              <><Check className="h-4 w-4" /> Request Verification</>
+            )}
           </Button>
         )}
       </div>

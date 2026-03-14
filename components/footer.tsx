@@ -5,7 +5,7 @@ const quickLinks = [
   { href: "/find-donor", label: "Find Donor" },
   { href: "/register-donor", label: "Become a Donor" },
   { href: "/hospital-signup", label: "Hospital Registration" },
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/login", label: "Sign In" },
 ]
 
 const supportLinks = [

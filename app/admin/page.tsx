@@ -13,8 +13,15 @@ export default function AdminPage() {
     <div className="flex min-h-screen flex-col">
       <Navbar />
 
-      <main className="flex-1 bg-background">
-        <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-20">
+      <main className="relative flex-1 overflow-hidden bg-background">
+        {/* Background bubbles */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-background to-primary/[0.02]" />
+        <div className="absolute top-16 right-12 h-40 w-40 rounded-full bg-primary/[0.07] blur-2xl" />
+        <div className="absolute top-1/3 -left-10 h-32 w-32 rounded-full bg-primary/[0.06] blur-2xl" />
+        <div className="absolute bottom-24 right-1/4 h-24 w-24 rounded-full bg-primary/[0.08] blur-2xl" />
+        <div className="absolute bottom-1/3 left-1/3 h-16 w-16 rounded-full bg-primary/[0.05] blur-xl" />
+        <div className="absolute top-1/2 right-1/3 h-20 w-20 rounded-full bg-primary/[0.06] blur-2xl" />
+        <div className="relative mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-20">
 
           {!isLoggedIn ? (
             <>

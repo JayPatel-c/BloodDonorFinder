@@ -40,7 +40,7 @@ export function BloodCompatibility() {
           <div className={`transition-all duration-700 ${visible ? "translate-x-0 opacity-100" : "-translate-x-10 opacity-0"}`}>
             <div className="relative overflow-hidden rounded-3xl">
               <Image
-                src="/images/blood-donation-hero.jpg"
+                src="/images/blood-donation-hero.png"
                 alt="Blood donation illustration showing diverse volunteers at a modern medical center"
                 width={600}
                 height={400}

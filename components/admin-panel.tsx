@@ -25,6 +25,9 @@ import {
   LayoutDashboard,
   FileText,
   LogOut,
+  Settings,
+  Mail,
+  Shield,
 } from "lucide-react"
 
 const sidebarItems = [
@@ -55,6 +58,7 @@ export function AdminPanel() {
   const [activeTab, setActiveTab] = useState("overview")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [profileOpen, setProfileOpen] = useState(false)
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
@@ -122,14 +126,15 @@ export function AdminPanel() {
 
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-[68px] items-center justify-between border-b border-border bg-card px-4 lg:px-6">
+        <header className="flex h-[68px] items-center justify-between border-b border-border bg-card px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden" onClick={() => setSidebarOpen(true)}>
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
-              Admin Panel
-            </h1>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">BloodLink</p>
+              <h1 className="text-base font-bold text-foreground leading-tight" style={{ fontFamily: "var(--font-heading)" }}>Admin Dashboard</h1>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative hidden md:block">
@@ -141,13 +146,55 @@ export function AdminPanel() {
                 className="w-64 rounded-xl pl-9"
               />
             </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-sm shadow-primary/20">
-              A
+            <div className="relative">
+              <button
+                onClick={() => setProfileOpen((p) => !p)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-sm shadow-primary/20 transition-transform hover:scale-105"
+              >
+                A
+              </button>
+
+              {/* Profile dropdown */}
+              {profileOpen && (
+                <>
+                  <div className="fixed inset-0 z-50" onClick={() => setProfileOpen(false)} />
+                  <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-border bg-card p-5 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div
+                        className="flex items-center justify-center bg-primary text-base font-bold text-primary-foreground"
+                        style={{ width: 44, height: 44, borderRadius: "50%" }}
+                      >
+                        A
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Admin User</p>
+                        <p className="text-xs text-muted-foreground">Super Administrator</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3 mb-4">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        admin@bloodlink.in
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Shield className="h-3 w-3 shrink-0" />
+                        Role: Super Admin
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Link href="/admin" className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-rose-500 transition-colors hover:bg-rose-50 dark:hover:bg-rose-500/10 text-left">
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           {/* Overview */}
           {activeTab === "overview" && (
             <div>

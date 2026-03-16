@@ -32,15 +32,13 @@ export function Footer() {
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
               A healthcare information system leveraging technology to save lives and transform emergency medical response.
             </p>
-            <div className="mt-6 flex gap-3">
-              {["Fb", "Tw", "In", "Yt"].map((s) => (
-                <div
-                  key={s}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-xs font-bold text-muted-foreground transition-colors hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
-                >
-                  {s}
-                </div>
-              ))}
+            <div className="mt-6 flex">
+              <Link 
+                href="/register-donor" 
+                className="inline-flex items-center justify-center rounded-lg bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/20"
+              >
+                Become a Donor Today
+              </Link>
             </div>
           </div>
 
@@ -105,12 +103,9 @@ export function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
-          {/* <p className="text-sm text-muted-foreground">
-            Blood Donor Finder - 24CE078, 24CE081, 24CE082, 24CE085
-          </p>
           <p className="text-sm text-muted-foreground">
-            Dhruvin Patel, Jay Patel, Jenil Patel, Krish Patel
-          </p> */}
+            © {new Date().getFullYear()} BloodLink — Blood Donor Finder System
+          </p>
         </div>
       </div>
     </footer>

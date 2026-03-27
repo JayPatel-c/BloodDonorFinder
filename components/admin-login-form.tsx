@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,10 +11,52 @@ export function AdminLoginForm({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setRawError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  const setError = (msg: string) => {
+    setRawError(msg);
+    setTimeout(() => {
+      if (errorRef.current) {
+        errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        errorRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
+  };
 
   const router = useRouter()
   
   const isFormValid = email && password
+
+  const handleLogin = async () => {
+    if (!isFormValid) return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed.");
+      } else {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        
+        if (onLogin) onLogin();
+        router.push("/admin/dashboard");
+      }
+    } catch (err) {
+      setError("Network error. Backend server might not be running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
@@ -36,6 +78,13 @@ export function AdminLoginForm({ onLogin }: { onLogin: () => void }) {
       </div>
 
       <div className="flex flex-col gap-5">
+        
+        {error && (
+          <div ref={errorRef} tabIndex={-1} className="rounded-xl bg-destructive/10 p-3 text-sm font-medium text-destructive text-center outline-none">
+            {error}
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="email" className="text-sm font-medium">
             Email Address
@@ -72,11 +121,11 @@ export function AdminLoginForm({ onLogin }: { onLogin: () => void }) {
         </div>
 
 <Button
-  disabled={!isFormValid}
-  onClick={() => router.push("/admin/dashboard")}
+  disabled={!isFormValid || loading}
+  onClick={handleLogin}
   className="rounded-xl shadow-sm shadow-primary/20 disabled:opacity-50"
 >
-  Login as Admin
+  {loading ? "Logging in..." : "Login as Admin"}
 </Button>
       </div>
     </div>

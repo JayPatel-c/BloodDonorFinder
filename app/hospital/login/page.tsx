@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -15,21 +15,83 @@ export default function HospitalLoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setRawError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  const setError = (msg: string) => {
+    setRawError(msg);
+    setTimeout(() => {
+      if (errorRef.current) {
+        errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        errorRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
+  };
 
   const isFormValid = email && password
+  
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isFormValid) return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/hospital/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed. Please try again.");
+      } else {
+        sessionStorage.setItem("hospitalToken", data.token);
+        sessionStorage.setItem("hospitalUser", JSON.stringify(data.user));
+        // Clear old shared keys to avoid cross-tab session overwrite.
+        localStorage.removeItem("hospitalToken");
+        localStorage.removeItem("hospitalUser");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.push("/hospital/dashboard");
+      }
+    } catch (err) {
+      setError("Network error. Server might be down.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
 
       <main className="relative flex-1 overflow-hidden bg-background">
-        {/* Background bubbles */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-background to-primary/[0.02]" />
-        <div className="absolute top-16 right-12 h-40 w-40 rounded-full bg-primary/[0.07] blur-2xl" />
-        <div className="absolute top-1/3 -left-10 h-32 w-32 rounded-full bg-primary/[0.06] blur-2xl" />
-        <div className="absolute bottom-24 right-1/4 h-24 w-24 rounded-full bg-primary/[0.08] blur-2xl" />
-        <div className="absolute bottom-1/3 left-1/3 h-16 w-16 rounded-full bg-primary/[0.05] blur-xl" />
-        <div className="absolute top-1/2 right-1/3 h-20 w-20 rounded-full bg-primary/[0.06] blur-2xl" />
+        {/* Animated background elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 h-[600px] w-[600px] translate-x-1/3 -translate-y-1/4 rounded-full bg-primary/[0.03]" />
+          <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/4 translate-y-1/4 rounded-full bg-primary/[0.02]" />
+        </div>
+
+        {/* Floating blood cells decoration */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute animate-pulse rounded-full bg-primary/[0.06]"
+              style={{
+                width: `${20 + i * 15}px`,
+                height: `${20 + i * 15}px`,
+                top: `${15 + i * 18}%`,
+                left: `${5 + i * 20}%`,
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: `${3 + i * 0.5}s`,
+              }}
+            />
+          ))}
+        </div>
 
         <div className="relative mx-auto max-w-md px-4 py-16 lg:py-24">
 
@@ -61,7 +123,14 @@ export default function HospitalLoginPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-5">
+            <form className="flex flex-col gap-5" onSubmit={handleLogin}>
+              
+              {error && (
+                <div ref={errorRef} tabIndex={-1} className="rounded-xl bg-destructive/10 p-3 text-sm font-medium text-destructive outline-none">
+                  {error}
+                </div>
+              )}
+
               <div className="flex flex-col gap-2">
                 <Label>Email Address</Label>
                 <Input
@@ -70,6 +139,7 @@ export default function HospitalLoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="rounded-xl"
+                  required
                 />
               </div>
 
@@ -82,6 +152,7 @@ export default function HospitalLoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="rounded-xl pr-10"
+                    required
                   />
                   <button
                     type="button"
@@ -94,11 +165,11 @@ export default function HospitalLoginPage() {
               </div>
 
               <Button
-                disabled={!isFormValid}
-                onClick={() => router.push("/hospital/dashboard")}
+                type="submit"
+                disabled={!isFormValid || loading}
                 className="rounded-xl shadow-sm shadow-primary/20 disabled:opacity-50"
               >
-                Login to Dashboard
+                {loading ? "Logging in..." : "Login to Dashboard"}
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">
@@ -107,7 +178,7 @@ export default function HospitalLoginPage() {
                   Register here
                 </Link>
               </p>
-            </div>
+            </form>
           </div>
         </div>
       </main>

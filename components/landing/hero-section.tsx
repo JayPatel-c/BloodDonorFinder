@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Search, Heart, Building2, ArrowRight, Droplets } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState, useRef } from "react"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
@@ -42,10 +43,18 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 
 export function HeroSection() {
   const [isVisible, setIsVisible] = useState(false)
+  const [selectedBloodGroup, setSelectedBloodGroup] = useState("")
+  const router = useRouter()
 
   useEffect(() => {
     setIsVisible(true)
   }, [])
+
+  const handleSearch = () => {
+    const params = new URLSearchParams()
+    if (selectedBloodGroup) params.set("bloodGroup", selectedBloodGroup)
+    router.push(`/find-donor${params.toString() ? `?${params.toString()}` : ""}`)
+  }
 
   return (
     <section className="relative overflow-hidden bg-background">
@@ -118,7 +127,7 @@ export function HeroSection() {
             <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-2.5 shadow-xl shadow-primary/[0.04] sm:flex-row">
               <div className="flex items-center gap-2 rounded-xl bg-primary/5 px-3 sm:w-44">
                 <Droplets className="h-4 w-4 shrink-0 text-primary" />
-                <Select>
+                <Select value={selectedBloodGroup} onValueChange={setSelectedBloodGroup}>
                   <SelectTrigger className="border-0 bg-transparent px-0 shadow-none focus:ring-0">
                     <SelectValue placeholder="Blood Group" />
                   </SelectTrigger>
@@ -139,11 +148,9 @@ export function HeroSection() {
                 className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
               />
 
-              <Button size="lg" className="gap-2 rounded-xl px-6" asChild>
-                <Link href="/find-donor">
-                  <Search className="h-4 w-4" />
-                  Search Donors
-                </Link>
+              <Button size="lg" className="gap-2 rounded-xl px-6" onClick={handleSearch}>
+                <Search className="h-4 w-4" />
+                Search Donors
               </Button>
             </div>
           </div>

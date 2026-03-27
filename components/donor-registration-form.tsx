@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Check, ChevronLeft, ChevronRight, User, Stethoscope, MapPin, Bell, Shield } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight, User, Stethoscope, MapPin, Bell, Shield, Eye, EyeOff } from "lucide-react"
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
@@ -20,7 +21,29 @@ const steps = [
 ]
 
 export function DonorRegistrationForm() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [error, setRawError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  const setError = (msg: string) => {
+    setRawError(msg);
+    setTimeout(() => {
+      if (errorRef.current) {
+        errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        errorRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
+  };
+
+  useEffect(() => {
+    // Scroll to top of the page smoothly when step changes
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentStep])
+
   const [formData, setFormData] = useState({
     fullName: "",
     gender: "",
@@ -45,6 +68,73 @@ export function DonorRegistrationForm() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleNext = () => {
+    setError("");
+    if (currentStep === 1) {
+      if (!formData.fullName.trim()) return setError("Full Name is required.");
+      if (!/^[A-Za-z\s]+$/.test(formData.fullName)) {
+        return setError("Name must not contain numbers or special characters.");
+      }
+      if (!formData.gender) return setError("Please select your gender.");
+      
+      if (!formData.dob) return setError("Date of Birth is required.");
+      const birthDate = new Date(formData.dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+      if (age < 18) return setError("You must be 18 or older to donate blood.");
+      
+      if (!formData.mobile) return setError("Mobile number is required.");
+      if (!/^\d{10}$/.test(formData.mobile)) {
+        return setError("Mobile number must be exactly 10 digits.");
+      }
+      
+      if (!formData.email.trim()) return setError("Email is required.");
+      if (!/^[a-zA-Z0-9.]+@gmail\.com$/.test(formData.email)) {
+        return setError("Please enter a valid @gmail.com address (e.g., yourname@gmail.com).");
+      }
+      
+      if (!formData.password) return setError("Password is required.");
+      if (!/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,}$/.test(formData.password)) {
+        return setError("Password must be at least 6 characters, containing 1 number and 1 special character.");
+      }
+      
+      if (!formData.confirmPassword) return setError("Please confirm your password.");
+      if (formData.password !== formData.confirmPassword) {
+        return setError("Passwords do not match.");
+      }
+    }
+    
+    if (currentStep === 2) {
+      if (!formData.bloodGroup) return setError("Please select a blood group.");
+      
+      if (formData.lastDonation) {
+        if (new Date(formData.lastDonation) > new Date()) {
+          return setError("Last donation date cannot be in the future.");
+        }
+      }
+      
+      if (!formData.weight) return setError("Weight is required.");
+      if (Number(formData.weight) <= 50) {
+        return setError("Weight must be greater than 50 kg.");
+      }
+    }
+    
+    if (currentStep === 3) {
+      if (!formData.address.trim()) return setError("Full Address is required.");
+      if (!formData.city.trim()) return setError("City is required.");
+      if (!formData.district.trim()) return setError("District is required.");
+      
+      if (!formData.pin) return setError("PIN Code is required.");
+      if (!/^\d{6}$/.test(formData.pin)) {
+        return setError("PIN Code must be exactly 6 digits.");
+      }
+    }
+
+    setCurrentStep((p) => Math.min(4, p + 1));
+  };
+
   const passwordsMatch =
   formData.password &&
   formData.confirmPassword &&
@@ -52,9 +142,61 @@ export function DonorRegistrationForm() {
 
   const isEligible = Number(formData.weight) >= 50 && !formData.chronicDisease
   const progress = (currentStep / steps.length) * 100
+  const maxTodayStr = new Date().toISOString().split("T")[0];
+
+  const handleRegister = async () => {
+    if (!passwordsMatch) return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/donor/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          bloodGroup: formData.bloodGroup,
+          city: formData.city,
+          gender: formData.gender,
+          dob: formData.dob,
+          mobile: formData.mobile,
+          lastDonation: formData.lastDonation || null,
+          weight: formData.weight,
+          chronicDisease: formData.chronicDisease,
+          address: formData.address,
+          district: formData.district,
+          pin: formData.pin,
+          availabilityType: formData.availabilityType,
+          preferredContact: formData.preferredContact
+        }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.error || "Registration failed.");
+      } else {
+        router.push("/donor/login");
+      }
+    } catch (err) {
+      setError("Network error. Backend server might not be running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl">
+      {error && (
+        <div 
+          ref={errorRef}
+          tabIndex={-1}
+          className="mb-6 rounded-xl bg-destructive/10 p-4 text-sm font-semibold text-destructive border border-destructive/20 text-center outline-none"
+        >
+          {error}
+        </div>
+      )}
       {/* Progress bar */}
       <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -163,6 +305,7 @@ export function DonorRegistrationForm() {
                 <Input
                   id="dob"
                   type="date"
+                  max={maxTodayStr}
                   className="rounded-xl"
                   value={formData.dob}
                   onChange={(e) => updateField("dob", e.target.value)}
@@ -172,10 +315,13 @@ export function DonorRegistrationForm() {
                 <Label htmlFor="mobile" className="text-sm font-medium">Mobile Number</Label>
                 <Input
                   id="mobile"
-                  placeholder="+91 XXXXX XXXXX"
+                  placeholder="10-digit mobile number"
                   className="rounded-xl"
                   value={formData.mobile}
-                  onChange={(e) => updateField("mobile", e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    updateField("mobile", val);
+                  }}
                 />
               </div>
             </div>
@@ -197,28 +343,46 @@ export function DonorRegistrationForm() {
                 <Label htmlFor="password" className="text-sm font-medium">
                   Create Password
                 </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter password"
-                  className="rounded-xl"
-                  value={formData.password}
-                  onChange={(e) => updateField("password", e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter password"
+                    className="rounded-xl pr-10"
+                    value={formData.password}
+                    onChange={(e) => updateField("password", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(p => !p)}
+                    className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="confirmPassword" className="text-sm font-medium">
                   Confirm Password
                 </Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm password"
-                  className="rounded-xl"
-                  value={formData.confirmPassword}
-                  onChange={(e) => updateField("confirmPassword", e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm password"
+                    className="rounded-xl pr-10"
+                    value={formData.confirmPassword}
+                    onChange={(e) => updateField("confirmPassword", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(p => !p)}
+                    className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -275,6 +439,7 @@ export function DonorRegistrationForm() {
                 <Input
                   id="lastDonation"
                   type="date"
+                  max={maxTodayStr}
                   className="rounded-xl"
                   value={formData.lastDonation}
                   onChange={(e) => updateField("lastDonation", e.target.value)}
@@ -383,7 +548,10 @@ export function DonorRegistrationForm() {
                 placeholder="6-digit PIN"
                 className="rounded-xl"
                 value={formData.pin}
-                onChange={(e) => updateField("pin", e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  updateField("pin", val);
+                }}
               />
             </div>
 
@@ -520,7 +688,7 @@ export function DonorRegistrationForm() {
 
         {currentStep < 4 ? (
           <Button
-            onClick={() => setCurrentStep((p) => Math.min(4, p + 1))}
+            onClick={handleNext}
             className="gap-2 rounded-xl shadow-sm shadow-primary/20"
           >
             Next
@@ -528,11 +696,12 @@ export function DonorRegistrationForm() {
           </Button>
         ) : (
             <Button
-              disabled={!passwordsMatch}
+              disabled={!passwordsMatch || loading}
+              onClick={handleRegister}
               className="gap-2 rounded-xl shadow-sm shadow-primary/20"
             >
             <Check className="h-4 w-4" />
-            Register as Donor
+            {loading ? "Registering..." : "Register as Donor"}
           </Button>
         )}
       </div>

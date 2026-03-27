@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { DonorSearch } from "@/components/donor-search"
@@ -7,11 +8,31 @@ export default function FindDonorPage() {
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="relative flex-1 bg-background overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-background to-primary/[0.02]" />
-        <div className="absolute -top-24 right-1/4 h-64 w-64 rounded-full bg-primary/[0.04] blur-3xl" />
-        <div className="absolute top-1/2 -left-20 h-56 w-56 rounded-full bg-primary/[0.03] blur-3xl" />
-        <div className="absolute -bottom-20 right-1/3 h-48 w-48 rounded-full bg-primary/[0.03] blur-3xl" />
+        {/* Animated background elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 h-[600px] w-[600px] translate-x-1/3 -translate-y-1/4 rounded-full bg-primary/[0.03]" />
+          <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/4 translate-y-1/4 rounded-full bg-primary/[0.02]" />
+        </div>
+
+        {/* Floating blood cells decoration */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute animate-pulse rounded-full bg-primary/[0.06]"
+              style={{
+                width: `${20 + i * 15}px`,
+                height: `${20 + i * 15}px`,
+                top: `${15 + i * 18}%`,
+                left: `${5 + i * 20}%`,
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: `${3 + i * 0.5}s`,
+              }}
+            />
+          ))}
+        </div>
+
+
 
         <div className="relative mx-auto max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
           <div className="mb-8">
@@ -26,7 +47,9 @@ export default function FindDonorPage() {
               Find compatible blood donors near you. Filter by blood group, location, and availability.
             </p>
           </div>
-          <DonorSearch />
+          <Suspense fallback={<div className="text-muted-foreground">Loading...</div>}>
+            <DonorSearch />
+          </Suspense>
         </div>
       </main>
       <Footer />

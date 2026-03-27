@@ -157,12 +157,13 @@ export default function DashboardPage() {
       <main className="flex-1">
         {/* ── Hero Section ─────────────────────────────────── */}
         <section className="relative overflow-hidden border-b border-border">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.07] via-background to-primary/[0.04]" />
-          <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/[0.06] blur-3xl animate-pulse" />
-          <div
-            className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-primary/[0.05] blur-3xl animate-pulse"
-            style={{ animationDelay: "1s" }}
-          />
+          {/* Animated background elements */}
+          <div className="absolute inset-0">
+            <div className="absolute top-0 right-0 h-[600px] w-[600px] translate-x-1/3 -translate-y-1/4 rounded-full bg-primary/[0.03]" />
+            <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/4 translate-y-1/4 rounded-full bg-primary/[0.02]" />
+          </div>
+
+
 
           <div className="relative mx-auto max-w-7xl px-4 py-20 md:py-28 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">

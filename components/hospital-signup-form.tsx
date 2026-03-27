@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Building2, User, MapPin, Lock, ChevronLeft, ChevronRight, Check, Upload, FileText, Shield } from "lucide-react"
+import { Building2, User, MapPin, Lock, ChevronLeft, ChevronRight, Check, Upload, FileText, Shield, Eye, EyeOff } from "lucide-react"
 
 const formSteps = [
   { id: 1, title: "Hospital Info", icon: Building2 },
@@ -15,11 +16,141 @@ const formSteps = [
 ]
 
 export function HospitalSignupForm() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [error, setRawError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  const setError = (msg: string) => {
+    setRawError(msg);
+    setTimeout(() => {
+      if (errorRef.current) {
+        errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        errorRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
+  };
+
+  useEffect(() => {
+    // Scroll to top of the page smoothly when step changes
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentStep])
+
+  const [formData, setFormData] = useState({
+    hospitalName: "",
+    hospType: "",
+    regNumber: "",
+    personName: "",
+    designation: "",
+    contactNumber: "",
+    hospAddress: "",
+    hospCity: "",
+    hospDistrict: "",
+    hospEmail: "",
+    hospPassword: "",
+    confirmPassword: "",
+  })
+
+  const updateField = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleNext = () => {
+    setError("");
+    if (currentStep === 1) {
+      if (!formData.hospitalName.trim()) return setError("Hospital Name is required.");
+      if (!/^[A-Za-z\s]+$/.test(formData.hospitalName)) {
+        return setError("Hospital name must not contain numbers or special characters.");
+      }
+      if (!formData.hospType) return setError("Please select a hospital type.");
+      if (!formData.regNumber.trim()) return setError("Hospital Registration Number is required.");
+    }
+    
+    if (currentStep === 2) {
+      if (!formData.personName.trim()) return setError("Authorized person name is required.");
+      if (!/^[A-Za-z\s]+$/.test(formData.personName)) {
+        return setError("Authorized person name must not contain numbers.");
+      }
+      if (!formData.designation.trim()) return setError("Designation is required.");
+      if (!formData.contactNumber) return setError("Contact Number is required.");
+      if (!/^\d{10}$/.test(formData.contactNumber)) {
+        return setError("Mobile number must be exactly 10 digits.");
+      }
+    }
+    
+    if (currentStep === 3) {
+      if (!formData.hospAddress.trim()) return setError("Please enter the full address.");
+      if (!formData.hospCity.trim()) return setError("Please enter the city.");
+      if (!formData.hospDistrict.trim()) return setError("Please enter the district.");
+    }
+
+    setCurrentStep((p) => Math.min(4, p + 1));
+  };
+
+  const passwordsMatch = formData.hospPassword && formData.hospPassword === formData.confirmPassword;
   const progress = (currentStep / formSteps.length) * 100
+
+  const handleRegister = async () => {
+    setError("");
+    if (!formData.hospEmail.trim()) return setError("Email Address is required.");
+    if (!/^[a-zA-Z0-9.]+@gmail\.com$/.test(formData.hospEmail)) {
+        return setError("Please enter a valid @gmail.com address (e.g., hospitalname@gmail.com).");
+    }
+    if (!formData.hospPassword) return setError("Password is required.");
+    if (!/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,}$/.test(formData.hospPassword)) {
+      return setError("Password must be at least 6 characters, containing 1 number and 1 special character.");
+    }
+    if (!formData.confirmPassword) return setError("Please confirm your password.");
+    if (!passwordsMatch) return setError("Passwords do not match.");
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/hospital/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.hospitalName,
+          email: formData.hospEmail,
+          password: formData.hospPassword,
+          type: formData.hospType,
+          city: formData.hospCity,
+          regNumber: formData.regNumber,
+          contactPerson: formData.personName,
+          designation: formData.designation,
+          contactNumber: formData.contactNumber,
+          address: formData.hospAddress,
+          district: formData.hospDistrict
+        }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.error || "Signup failed.");
+      } else {
+        router.push("/hospital/login");
+      }
+    } catch (err) {
+      setError("Network error. Backend server might not be running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
+      {error && (
+        <div 
+          ref={errorRef}
+          tabIndex={-1}
+          className="mb-6 rounded-xl bg-destructive/10 p-4 text-sm font-semibold text-destructive border border-destructive/20 text-center outline-none"
+        >
+          {error}
+        </div>
+      )}
       {/* Progress bar */}
       <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -75,12 +206,12 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospitalName" className="text-sm font-medium">Hospital Name</Label>
-              <Input id="hospitalName" placeholder="Enter hospital name" className="rounded-xl" />
+              <Input id="hospitalName" value={formData.hospitalName} onChange={(e) => updateField("hospitalName", e.target.value)} placeholder="Enter hospital name" className="rounded-xl" required />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium">Hospital Type</Label>
-              <Select>
+              <Select value={formData.hospType} onValueChange={(v) => updateField("hospType", v)}>
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -95,7 +226,7 @@ export function HospitalSignupForm() {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="regNumber" className="text-sm font-medium">Registration Number</Label>
-              <Input id="regNumber" placeholder="Hospital registration number" className="rounded-xl" />
+              <Input id="regNumber" value={formData.regNumber} onChange={(e) => updateField("regNumber", e.target.value)} placeholder="Hospital registration number" className="rounded-xl" />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -136,17 +267,20 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="personName" className="text-sm font-medium">Full Name</Label>
-              <Input id="personName" placeholder="Authorized person name" className="rounded-xl" />
+              <Input id="personName" value={formData.personName} onChange={(e) => updateField("personName", e.target.value)} placeholder="Authorized person name" className="rounded-xl" />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="designation" className="text-sm font-medium">Designation</Label>
-              <Input id="designation" placeholder="e.g. Chief Medical Officer" className="rounded-xl" />
+              <Input id="designation" value={formData.designation} onChange={(e) => updateField("designation", e.target.value)} placeholder="e.g. Chief Medical Officer" className="rounded-xl" />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="contactNumber" className="text-sm font-medium">Contact Number</Label>
-              <Input id="contactNumber" placeholder="+91 XXXXX XXXXX" className="rounded-xl" />
+              <Input id="contactNumber" value={formData.contactNumber} onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                updateField("contactNumber", val);
+              }} placeholder="10-digit mobile number" className="rounded-xl" />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -187,17 +321,17 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospAddress" className="text-sm font-medium">Full Address</Label>
-              <Input id="hospAddress" placeholder="Street address, landmark" className="rounded-xl" />
+              <Input id="hospAddress" value={formData.hospAddress} onChange={(e) => updateField("hospAddress", e.target.value)} placeholder="Street address, landmark" className="rounded-xl" />
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="hospCity" className="text-sm font-medium">City</Label>
-                <Input id="hospCity" placeholder="Enter city" className="rounded-xl" />
+                <Input id="hospCity" value={formData.hospCity} onChange={(e) => updateField("hospCity", e.target.value)} placeholder="Enter city" className="rounded-xl" />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="hospDistrict" className="text-sm font-medium">District</Label>
-                <Input id="hospDistrict" placeholder="Enter district" className="rounded-xl" />
+                <Input id="hospDistrict" value={formData.hospDistrict} onChange={(e) => updateField("hospDistrict", e.target.value)} placeholder="Enter district" className="rounded-xl" />
               </div>
             </div>
 
@@ -236,18 +370,32 @@ export function HospitalSignupForm() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospEmail" className="text-sm font-medium">Email Address</Label>
-              <Input id="hospEmail" type="email" placeholder="hospital@example.com" className="rounded-xl" />
+              <Input id="hospEmail" type="email" value={formData.hospEmail} onChange={(e) => updateField("hospEmail", e.target.value)} placeholder="hospital@example.com" className="rounded-xl" required />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="hospPassword" className="text-sm font-medium">Password</Label>
-              <Input id="hospPassword" type="password" placeholder="Create a strong password" className="rounded-xl" />
+              <div className="relative">
+                <Input id="hospPassword" type={showPassword ? "text" : "password"} value={formData.hospPassword} onChange={(e) => updateField("hospPassword", e.target.value)} placeholder="Create a strong password" className="rounded-xl pr-10" required />
+                <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
-              <Input id="confirmPassword" type="password" placeholder="Confirm your password" className="rounded-xl" />
+              <div className="relative">
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} onChange={(e) => updateField("confirmPassword", e.target.value)} placeholder="Confirm your password" className="rounded-xl pr-10" required />
+                <button type="button" onClick={() => setShowConfirmPassword(p => !p)} className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground">
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
+            
+            {formData.confirmPassword && !passwordsMatch && (
+              <p className="text-sm text-red-500 mt-1">Passwords do not match</p>
+            )}
 
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
               <div className="flex items-center gap-3">
@@ -290,14 +438,14 @@ export function HospitalSignupForm() {
         </div>
 
         {currentStep < 4 ? (
-          <Button onClick={() => setCurrentStep((p) => Math.min(4, p + 1))} className="gap-2 rounded-xl shadow-sm shadow-primary/20">
+          <Button onClick={handleNext} className="gap-2 rounded-xl shadow-sm shadow-primary/20">
             Next
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button className="gap-2 rounded-xl shadow-sm shadow-primary/20">
+          <Button disabled={!passwordsMatch || loading} onClick={handleRegister} className="gap-2 rounded-xl shadow-sm shadow-primary/20">
             <Check className="h-4 w-4" />
-            Request Verification
+            {loading ? "Requesting..." : "Request Verification"}
           </Button>
         )}
       </div>

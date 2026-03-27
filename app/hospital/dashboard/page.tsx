@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -10,79 +10,71 @@ import {
   Heart, Search, AlertCircle, History, Building2, Activity,
   MapPin, Phone, Clock, CheckCircle2, Send, Minus, Plus,
   Edit3, LogOut, ChevronRight, UserCheck,
-  Users, Droplets, User, X, Menu, TrendingUp, UserX, Trash2,
+  Users, Droplets, User, X, Menu, TrendingUp, UserX, Trash2, Loader2,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 /* ═══════════════════════════════════════════════════════════
-   MOCK DATA
+   DEFAULT DATA (empty — real data loads from API)
 ═══════════════════════════════════════════════════════════ */
-const HOSPITAL = {
-  name:          "Shree Krishna Hospital",
-  type:          "Private Hospital",
-  regNumber:     "GUJ-HOSP-2021-4821",
-  address:       "14, Civil Lines, Near Railway Station",
-  city:          "Anand",
-  district:      "Anand",
-  email:         "info@shreekrishnahospital.com",
-  contactPerson: "Dr. Ramesh Patel",
-  designation:   "Chief Medical Officer",
-  contactNumber: "+91 98765 43210",
-  id:            "HOSP-2024-0042",
-  joinedDate:    "2024-01-15",
-  verified:      true,
+const DEFAULT_HOSPITAL = {
+  name: "",
+  type: "",
+  regNumber: "",
+  address: "",
+  city: "",
+  district: "",
+  email: "",
+  contactPerson: "",
+  designation: "",
+  contactNumber: "",
+  id: "",
+  joinedDate: "",
+  verified: false,
 }
+
+
+import React from 'react';
+const HospContext = React.createContext(DEFAULT_HOSPITAL);
+const useHosp = () => React.useContext(HospContext);
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
-const ALL_DONORS = [
-  { id: 1,  name: "Dhruvin Patel", bg: "B+",  city: "Anand",     area: "Civil Lines",   lastDon: "2024-11-10", eligible: true,  phone: "+91 98765 43210" },
-  { id: 2,  name: "Jay Patel",     bg: "O+",  city: "Anand",     area: "Sardar Nagar",  lastDon: "2024-10-05", eligible: true,  phone: "+91 91234 56789" },
-  { id: 3,  name: "Jenil Patel",   bg: "A+",  city: "Anand",     area: "Station Road",  lastDon: "2024-09-22", eligible: false, phone: "+91 87654 32100" },
-  { id: 4,  name: "Krish Patel",   bg: "AB-", city: "Vadodara",  area: "Alkapuri",      lastDon: "2024-08-14", eligible: true,  phone: "+91 76543 21098" },
-  { id: 5,  name: "Riya Shah",     bg: "B-",  city: "Anand",     area: "Vitthal Udyog", lastDon: "2024-12-01", eligible: true,  phone: "+91 99887 76655" },
-  { id: 6,  name: "Priya Mehta",   bg: "O-",  city: "Ahmedabad", area: "Navrangpura",   lastDon: "2024-11-28", eligible: true,  phone: "+91 88776 55443" },
-  { id: 7,  name: "Amit Shah",     bg: "A-",  city: "Anand",     area: "Yoginagar",     lastDon: "2024-07-10", eligible: true,  phone: "+91 77665 44332" },
-  { id: 8,  name: "Nisha Desai",   bg: "AB+", city: "Anand",     area: "Bidaj",         lastDon: "2024-06-18", eligible: true,  phone: "+91 66554 33221" },
-  { id: 9,  name: "Sonal Trivedi", bg: "O+",  city: "Nadiad",    area: "College Road",  lastDon: "2024-10-20", eligible: true,  phone: "+91 55443 22110" },
-  { id: 10, name: "Harsh Rana",    bg: "B+",  city: "Anand",     area: "GIDC",          lastDon: "2025-01-02", eligible: false, phone: "+91 44332 11009" },
-]
+const ALL_DONORS: { id: number; name: string; bg: string; city: string; area: string; lastDon: string; eligible: boolean; phone: string }[] = []
 
-const INIT_REQUESTS = [
-  { id: "REQ-001", bg: "B+",  units: 2, urgency: "Critical", status: "Completed", date: "2025-01-10T10:30:00" },
-  { id: "REQ-002", bg: "O-",  units: 1, urgency: "High",     status: "Pending",   date: "2025-01-12T14:15:00" },
-  { id: "REQ-003", bg: "A+",  units: 3, urgency: "Normal",   status: "Completed", date: "2024-12-28T09:00:00" },
-  { id: "REQ-004", bg: "AB+", units: 1, urgency: "Critical", status: "Pending",   date: "2024-12-20T16:45:00" },
-  { id: "REQ-005", bg: "O+",  units: 2, urgency: "High",     status: "Completed", date: "2024-12-15T11:20:00" },
-]
+const INIT_REQUESTS: { id: string; bg: string; units: number; urgency: string; status: string; date: string; donorName?: string; donorMobile?: string }[] = []
 
 const CITY_STOCK = [
-  { bg: "A+", n: 42 }, { bg: "A-", n: 11 },
-  { bg: "B+", n: 31 }, { bg: "B-", n: 5  },
-  { bg: "O+", n: 48 }, { bg: "O-", n: 8  },
-  { bg: "AB+",n: 18 }, { bg: "AB-",n: 3  },
+  { bg: "A+", n: 0 }, { bg: "A-", n: 0 },
+  { bg: "B+", n: 0 }, { bg: "B-", n: 0 },
+  { bg: "O+", n: 0 }, { bg: "O-", n: 0 },
+  { bg: "AB+", n: 0 }, { bg: "AB-", n: 0 },
 ]
 
 /* ─── Helpers ─── */
 function fmt(d: string) {
+  if (!d) return "—"
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
 }
 function fmtTime(d: string) {
+  if (!d) return "—"
   return new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
 }
 function daysAgo(d: string) {
+  if (!d) return "—"
   const diff = Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
   return diff === 0 ? "Today" : `${diff}d ago`
 }
 
 /* ─── Nav ─── */
 const NAV = [
-  { label: "Overview",           icon: Activity    },
-  { label: "Find Donors",        icon: Search      },
-  { label: "Emergency Request",  icon: AlertCircle },
-  { label: "Request History",    icon: History     },
-  { label: "Hospital Profile",   icon: Building2   },
+  { label: "Overview", icon: Activity },
+  { label: "Find Donors", icon: Search },
+  { label: "Emergency Request", icon: AlertCircle },
+  { label: "Request History", icon: History },
+  { label: "Hospital Profile", icon: Building2 },
 ]
 
 /* ─── Badge helpers ─── */
@@ -90,8 +82,8 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
   return (
     <Badge className={cn("rounded-full text-xs",
       urgency === "Critical" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
-      : urgency === "High"   ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
-      : "bg-muted text-muted-foreground"
+        : urgency === "High" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+          : "bg-muted text-muted-foreground"
     )}>{urgency}</Badge>
   )
 }
@@ -99,8 +91,8 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <Badge className={cn("rounded-full text-xs",
       status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
-      : status === "Pending" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
-      : "bg-muted text-muted-foreground"
+        : status === "Pending" ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+          : "bg-muted text-muted-foreground"
     )}>{status}</Badge>
   )
 }
@@ -108,12 +100,14 @@ function StatusBadge({ status }: { status: string }) {
 /* ═══════════════════════════════════════════════════════════
    1. OVERVIEW — mirrors donor Overview exactly
 ═══════════════════════════════════════════════════════════ */
-function Overview({ requests, setTab }: {
+function Overview({ requests, donors, setTab }: {
   requests: typeof INIT_REQUESTS
+  donors: any[]
   setTab: (i: number) => void
 }) {
-  const eligible  = ALL_DONORS.filter(d => d.eligible).length
-  const pending   = requests.filter(r => r.status === "Pending").length
+  const hosp = useHosp();
+  const eligible = donors.filter(d => d.eligible).length
+  const pending = requests.filter(r => r.status === "Pending").length
   const completed = requests.filter(r => r.status === "Completed").length
 
   return (
@@ -133,11 +127,11 @@ function Overview({ requests, setTab }: {
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
-                {HOSPITAL.name}
+                {hosp.name}
               </h2>
               <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{HOSPITAL.city}, {HOSPITAL.district}</span>
-                <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{HOSPITAL.contactNumber}</span>
+                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{hosp.city}, {hosp.district}</span>
+                <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{hosp.contactNumber}</span>
               </div>
             </div>
           </div>
@@ -155,10 +149,10 @@ function Overview({ requests, setTab }: {
         {/* Stats strip — 4 columns, same as donor B+ / 7 / date / date */}
         <div className="grid grid-cols-2 divide-x divide-border sm:grid-cols-4">
           {[
-            { label: "Hospital Type",   value: HOSPITAL.type,              highlight: false },
-            { label: "Total Requests",  value: requests.length,            highlight: false },
-            { label: "Last Request",    value: fmt(requests[0]?.date ?? HOSPITAL.joinedDate), highlight: false },
-            { label: "Member Since",    value: fmt(HOSPITAL.joinedDate),   highlight: false },
+            { label: "Hospital Type", value: hosp.type, highlight: false },
+            { label: "Total Requests", value: requests.length, highlight: false },
+            { label: "Last Request", value: fmt(requests[0]?.date ?? hosp.joinedDate), highlight: false },
+            { label: "Member Since", value: fmt(hosp.joinedDate), highlight: false },
           ].map((item, i) => (
             <div key={i} className={cn("px-5 py-4 text-center", i > 0 && "border-t border-border sm:border-t-0")}>
               <p className={cn("text-lg font-bold", item.highlight ? "text-primary" : "text-foreground")}>
@@ -174,40 +168,40 @@ function Overview({ requests, setTab }: {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            value: ALL_DONORS.length,
+            value: donors.length,
             label: "Total Donors",
-            sub:   "Registered in your city",
-            icon:  Users,
+            sub: "Registered in your city",
+            icon: Users,
             color: "text-primary",
-            bg:    "bg-primary/10",
-            tab:   1,
+            bg: "bg-primary/10",
+            tab: 1,
           },
           {
             value: eligible,
             label: "Ready to Donate",
-            sub:   "Eligible & available now",
-            icon:  UserCheck,
+            sub: "Eligible & available now",
+            icon: UserCheck,
             color: "text-emerald-600 dark:text-emerald-400",
-            bg:    "bg-emerald-50 dark:bg-emerald-500/10",
-            tab:   1,
+            bg: "bg-emerald-50 dark:bg-emerald-500/10",
+            tab: 1,
           },
           {
             value: pending,
             label: "Pending Requests",
-            sub:   "Awaiting donor response",
-            icon:  Clock,
+            sub: "Awaiting donor response",
+            icon: Clock,
             color: "text-amber-600 dark:text-amber-400",
-            bg:    "bg-amber-50 dark:bg-amber-500/10",
-            tab:   3,
+            bg: "bg-amber-50 dark:bg-amber-500/10",
+            tab: 3,
           },
           {
             value: completed,
             label: "Fulfilled Requests",
-            sub:   "Successfully completed",
-            icon:  CheckCircle2,
+            sub: "Successfully completed",
+            icon: CheckCircle2,
             color: "text-violet-600 dark:text-violet-400",
-            bg:    "bg-violet-50 dark:bg-violet-500/10",
-            tab:   3,
+            bg: "bg-violet-50 dark:bg-violet-500/10",
+            tab: 3,
           },
         ].map(s => (
           <div key={s.label}
@@ -241,7 +235,7 @@ function Overview({ requests, setTab }: {
         </div>
         <div className="mt-4 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
           <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          Your hospital is visible to donors searching for blood requests in {HOSPITAL.city}.
+          Your hospital is visible to donors searching for blood requests in {hosp.city}.
         </div>
       </div>
 
@@ -278,23 +272,74 @@ function Overview({ requests, setTab }: {
 /* ═══════════════════════════════════════════════════════════
    2. FIND DONORS
 ═══════════════════════════════════════════════════════════ */
-function FindDonors() {
-  const [selBG,     setSelBG]     = useState("")
-  const [city,      setCity]      = useState("")
-  const [avail,     setAvail]     = useState<"all"|"eligible">("all")
-  const [results,   setResults]   = useState<typeof ALL_DONORS | null>(null)
+function FindDonors({ onSent }: { onSent: () => void }) {
+  const hosp = useHosp();
+  const [selBG, setSelBG] = useState("")
+  const [city, setCity] = useState("")
+  const [avail, setAvail] = useState<"all" | "eligible">("all")
+  const [results, setResults] = useState<typeof ALL_DONORS | null>(null)
   const [contacted, setContacted] = useState<number[]>([])
 
-  const doSearch = () => {
-    let list = ALL_DONORS
-    if (selBG)       list = list.filter(d => d.bg === selBG)
-    if (city.trim()) list = list.filter(d =>
-      d.city.toLowerCase().includes(city.toLowerCase()) ||
-      d.area.toLowerCase().includes(city.toLowerCase())
-    )
-    if (avail === "eligible") list = list.filter(d => d.eligible)
-    setResults(list)
+  const [loading, setLoading] = useState(false)
+
+  const doSearch = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (selBG) params.set("bloodGroup", selBG)
+      if (city.trim()) params.set("city", city.trim())
+      if (avail === "eligible") params.set("available", "true")
+
+      const res = await fetch(`http://localhost:5000/api/donors/search?${params.toString()}`)
+      if (res.ok) {
+        const data = await res.json()
+        const mapped = data.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          bg: d.bloodGroup,
+          city: d.city,
+          area: d.district || "",
+          lastDon: d.lastDonation || "",
+          eligible: d.eligible === 1,
+          phone: d.mobile || ""
+        }))
+        setResults(mapped)
+      }
+    } catch (err) {
+      console.error("Error searching donors:", err)
+    } finally {
+      setLoading(false)
+    }
   }
+
+  const handleRequest = async (donor: any) => {
+    try {
+      const token = sessionStorage.getItem('hospitalToken') || localStorage.getItem('hospitalToken') || localStorage.getItem('token')
+      const res = await fetch('http://localhost:5000/api/requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          donor_id: donor.id,
+          bloodGroup: donor.bg,
+          units: 1, // Default to 1 for direct search requests
+          urgency: 'Normal',
+          notes: `Direct request to ${donor.name}`,
+          request_type: 'Direct',
+          city: donor.city
+        })
+      })
+      if (res.ok) {
+        setContacted(p => [...p, donor.id])
+        onSent()
+      }
+    } catch (err) {
+      console.error("Error sending request:", err)
+    }
+  }
+
   const clear = () => { setSelBG(""); setCity(""); setAvail("all"); setResults(null) }
 
   return (
@@ -360,8 +405,9 @@ function FindDonors() {
         </div>
 
         <div className="flex gap-3">
-          <Button className="flex-1 rounded-xl gap-2 shadow-sm shadow-primary/20" onClick={doSearch}>
-            <Search className="h-4 w-4" />Search Donors
+          <Button className="flex-1 rounded-xl gap-2 shadow-sm shadow-primary/20" onClick={doSearch} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            {loading ? "Searching…" : "Search Donors"}
           </Button>
           {results !== null && <Button variant="outline" className="rounded-xl" onClick={clear}>Reset</Button>}
         </div>
@@ -434,7 +480,7 @@ function FindDonors() {
                   ) : (
                     <Button size="sm" className="rounded-xl flex-1 gap-1.5 shadow-sm shadow-primary/20"
                       disabled={!d.eligible}
-                      onClick={() => setContacted(p => [...p, d.id])}>
+                      onClick={() => handleRequest(d)}>
                       <Send className="h-3.5 w-3.5" />{d.eligible ? "Request" : "Unavailable"}
                     </Button>
                   )}
@@ -451,18 +497,45 @@ function FindDonors() {
 /* ═══════════════════════════════════════════════════════════
    3. EMERGENCY REQUEST
 ═══════════════════════════════════════════════════════════ */
-function EmergencyRequest({ onSubmit }: { onSubmit: (r: any) => void }) {
+function EmergencyRequest({ onSent }: { onSent: () => void }) {
+  const hospData = useHosp();
   const [selBG, setSelBG] = useState("")
-  const [hosp,  setHosp]  = useState(HOSPITAL.name)
+  const [hospName, setHospName] = useState(hospData.name)
   const [units, setUnits] = useState(1)
-  const [level, setLevel] = useState<"Normal"|"High"|"Critical">("Critical")
+  const [level, setLevel] = useState<"Normal" | "High" | "Critical">("Critical")
   const [notes, setNotes] = useState("")
-  const [done,  setDone]  = useState(false)
+  const [done, setDone] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const submit = () => {
+  const submit = async () => {
     if (!selBG) return
-    onSubmit({ bg: selBG, hospitalName: hosp, units, urgency: level, notes, status: "Pending", date: new Date().toISOString() })
-    setDone(true)
+    setLoading(true)
+    try {
+      const token = sessionStorage.getItem('hospitalToken') || localStorage.getItem('hospitalToken') || localStorage.getItem('token')
+      const res = await fetch('http://localhost:5000/api/requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bloodGroup: selBG,
+          units,
+          urgency: level,
+          notes,
+          request_type: 'Emergency',
+          city: hospData.city
+        })
+      })
+      if (res.ok) {
+        setDone(true)
+        onSent()
+      }
+    } catch (err) {
+      console.error("Error sending emergency request:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (done) return (
@@ -473,7 +546,7 @@ function EmergencyRequest({ onSubmit }: { onSubmit: (r: any) => void }) {
       <div>
         <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400" style={{ fontFamily: "var(--font-heading)" }}>Request Sent!</p>
         <p className="mt-1 text-sm text-emerald-600/80 dark:text-emerald-400/70 max-w-xs mx-auto">
-          Eligible <strong>{selBG}</strong> donors near {HOSPITAL.city} have been notified.
+          Eligible <strong>{selBG}</strong> donors near {hospData.city} have been notified.
         </p>
       </div>
       <Button variant="outline" className="rounded-xl" onClick={() => { setDone(false); setSelBG(""); setUnits(1); setLevel("Critical"); setNotes("") }}>
@@ -505,7 +578,7 @@ function EmergencyRequest({ onSubmit }: { onSubmit: (r: any) => void }) {
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium">Hospital Name</Label>
-            <Input value={hosp} onChange={e => setHosp(e.target.value)} className="rounded-xl" />
+            <Input value={hospName} onChange={e => setHospName(e.target.value)} className="rounded-xl" />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -547,9 +620,9 @@ function EmergencyRequest({ onSubmit }: { onSubmit: (r: any) => void }) {
             <Label className="text-sm font-medium">Emergency Level <span className="text-primary">*</span></Label>
             <div className="grid grid-cols-3 gap-2">
               {([
-                { v: "Normal",   note: "Within 24 hours", sel: "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
-                { v: "High",     note: "Within 6 hours",  sel: "border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400" },
-                { v: "Critical", note: "Immediately",     sel: "border-rose-500 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400" },
+                { v: "Normal", note: "Within 24 hours", sel: "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+                { v: "High", note: "Within 6 hours", sel: "border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+                { v: "Critical", note: "Immediately", sel: "border-rose-500 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400" },
               ] as const).map(u => (
                 <button key={u.v} type="button" onClick={() => setLevel(u.v)}
                   className={cn(
@@ -596,14 +669,14 @@ function EmergencyRequest({ onSubmit }: { onSubmit: (r: any) => void }) {
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-sm font-semibold text-foreground mb-3">Sending From</p>
           <div className="flex flex-col gap-2.5 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2"><Building2 className="h-4 w-4 shrink-0" />{HOSPITAL.name}</div>
-            <div className="flex items-center gap-2"><MapPin className="h-4 w-4 shrink-0" />{HOSPITAL.city}, {HOSPITAL.district}</div>
-            <div className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0" />{HOSPITAL.contactNumber}</div>
+            <div className="flex items-center gap-2"><Building2 className="h-4 w-4 shrink-0" />{hospData.name}</div>
+            <div className="flex items-center gap-2"><MapPin className="h-4 w-4 shrink-0" />{hospData.city}, {hospData.district}</div>
+            <div className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0" />{hospData.contactNumber}</div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <p className="text-sm font-semibold text-foreground mb-3">Available in {HOSPITAL.city}</p>
+          <p className="text-sm font-semibold text-foreground mb-3">Available in {hospData.city}</p>
           <div className="grid grid-cols-2 gap-2">
             {CITY_STOCK.map(s => (
               <div key={s.bg} className="flex items-center gap-2.5 rounded-xl bg-muted/40 border border-border/60 px-3 py-2">
@@ -624,13 +697,14 @@ function EmergencyRequest({ onSubmit }: { onSubmit: (r: any) => void }) {
 /* ═══════════════════════════════════════════════════════════
    4. REQUEST HISTORY — mirrors DonationTracker
 ═══════════════════════════════════════════════════════════ */
-function RequestHistory({ requests }: { requests: typeof INIT_REQUESTS }) {
+function RequestHistory({ requests, onDelete }: { requests: typeof INIT_REQUESTS; onDelete: (id: string) => void }) {
+  const hosp = useHosp();
   const [statusFilter, setStatusFilter] = useState("All")
-  const [bgFilter,     setBgFilter]     = useState("all")
+  const [bgFilter, setBgFilter] = useState("all")
 
   const counts = {
-    All:       requests.length,
-    Pending:   requests.filter(r => r.status === "Pending").length,
+    All: requests.length,
+    Pending: requests.filter(r => r.status === "Pending").length,
     Completed: requests.filter(r => r.status === "Completed").length,
   }
 
@@ -646,9 +720,9 @@ function RequestHistory({ requests }: { requests: typeof INIT_REQUESTS }) {
       {/* Stat cards — mirrors DonationTracker stat cards exactly */}
       <div className="grid gap-4 grid-cols-3">
         {[
-          { label: "Total Requests", value: counts.All,       icon: TrendingUp,   color: "text-primary",    bg: "bg-primary/10" },
-          { label: "Lives Impacted", value: counts.Completed, icon: CheckCircle2, color: "text-emerald-500",bg: "bg-emerald-50 dark:bg-emerald-500/10" },
-          { label: "Pending",        value: counts.Pending,   icon: Clock,        color: "text-amber-500",  bg: "bg-amber-50 dark:bg-amber-500/10" },
+          { label: "Total Requests", value: counts.All, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
+          { label: "Lives Impacted", value: counts.Completed, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
+          { label: "Pending", value: counts.Pending, icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
         ].map(s => (
           <div key={s.label} className="rounded-2xl border border-border bg-card p-5 text-center">
             <div className={cn("mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl", s.bg)}>
@@ -700,24 +774,51 @@ function RequestHistory({ requests }: { requests: typeof INIT_REQUESTS }) {
           </div>
           <div className="divide-y divide-border">
             {filtered.map((r, i) => (
-              <div key={r.id} className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/20 transition-colors">
-                {/* Index badge — same style as donation #N badge */}
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                  #{filtered.length - i}
+              <div key={r.id} className="flex flex-col hover:bg-muted/20 transition-colors">
+                <div className="flex items-center gap-4 px-6 py-3.5">
+                  {/* Index badge — same style as donation #N badge */}
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                    #{filtered.length - i}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      {r.id} · {r.bg} · {r.units} unit{r.units > 1 ? "s" : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{fmtTime(r.date)}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <UrgencyBadge urgency={r.urgency} />
+                    <StatusBadge status={r.status} />
+                    {r.status === "Pending" && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-lg text-xs h-7 px-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                        onClick={() => onDelete(r.id.replace('REQ-', ''))}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {r.id} · {r.bg} · {r.units} unit{r.units > 1 ? "s" : ""}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{fmtTime(r.date)}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <UrgencyBadge urgency={r.urgency} />
-                  <StatusBadge status={r.status} />
-                  {r.status === "Pending" && (
-                    <Button variant="ghost" size="sm" className="rounded-lg text-xs h-7 px-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">Cancel</Button>
-                  )}
-                </div>
+
+                {/* Donor Info Section */}
+                {(r.status === "Accepted" || r.status === "Completed") && r.donorName && (
+                  <div className="px-6 pb-4 pt-1 ml-13 flex flex-wrap items-center gap-4 border-t border-border/40 bg-primary/[0.02]">
+                    <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10">
+                        <User className="h-3 w-3 text-primary" />
+                      </div>
+                      <span className="text-muted-foreground">Donor:</span> {r.donorName}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10">
+                        <Phone className="h-3 w-3 text-primary" />
+                      </div>
+                      <span className="text-muted-foreground">Contact:</span> {r.donorMobile}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -731,14 +832,76 @@ function RequestHistory({ requests }: { requests: typeof INIT_REQUESTS }) {
    5. HOSPITAL PROFILE — mirrors Security + MyProfile
 ═══════════════════════════════════════════════════════════ */
 function HospitalProfile() {
-  const [editMode,      setEditMode]      = useState(false)
-  const [saved,         setSaved]         = useState(false)
-  const [form,          setForm]          = useState({ ...HOSPITAL })
-  const [showDeactivate,setShowDeactivate]= useState(false)
+  const hosp = useHosp();
+  const [editMode, setEditMode] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [rawError, setRawError] = useState("")
+  const [form, setForm] = useState({ ...hosp })
+  const [showDeactivate, setShowDeactivate] = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
 
-  const upd = (f: keyof typeof HOSPITAL, v: string) => setForm(p => ({ ...p, [f]: v }))
+  const upd = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
 
-  const handleSave = () => { setSaved(true); setEditMode(false); setTimeout(() => setSaved(false), 3000) }
+  const setError = (msg: string) => {
+    setRawError(msg)
+    setTimeout(() => {
+      if (errorRef.current) {
+        errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
+        errorRef.current.focus({ preventScroll: true })
+      }
+    }, 50)
+  }
+
+  const handleSave = async () => {
+    setRawError("")
+    // ── Validation matching hospital registration ──
+    if (!form.name.trim()) return setError("Hospital Name is required.")
+    if (!/^[A-Za-z\s]+$/.test(form.name)) return setError("Hospital name must not contain numbers or special characters.")
+    if (!form.type) return setError("Please select a hospital type.")
+    if (!form.contactPerson.trim()) return setError("Authorized person name is required.")
+    if (!/^[A-Za-z\s]+$/.test(form.contactPerson)) return setError("Authorized person name must not contain numbers.")
+    if (!form.contactNumber) return setError("Contact Number is required.")
+    if (!/^\d{10}$/.test(form.contactNumber)) return setError("Mobile number must be exactly 10 digits.")
+    if (!form.address.trim()) return setError("Full Address is required.")
+    if (!form.city.trim()) return setError("City is required.")
+    if (!form.district.trim()) return setError("District is required.")
+    if (!form.email.trim()) return setError("Email is required.")
+    if (!/^[a-zA-Z0-9.]+@gmail\.com$/.test(form.email)) return setError("Please enter a valid @gmail.com address.")
+
+    setSaving(true)
+    try {
+      const token = sessionStorage.getItem('hospitalToken') || localStorage.getItem('hospitalToken') || localStorage.getItem('token')
+      const res = await fetch('http://localhost:5000/api/auth/hospital/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: form.name,
+          type: form.type,
+          regNumber: form.regNumber,
+          contactPerson: form.contactPerson,
+          designation: form.designation,
+          contactNumber: form.contactNumber,
+          address: form.address,
+          city: form.city,
+          district: form.district,
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        sessionStorage.setItem('hospitalUser', JSON.stringify(data.user))
+        setSaved(true)
+        setEditMode(false)
+        setTimeout(() => setSaved(false), 3000)
+      } else {
+        setError(data.error || 'Failed to update profile.')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const Row = ({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) => (
     <div className={wide ? "sm:col-span-2" : ""}>
@@ -753,6 +916,16 @@ function HospitalProfile() {
         <div className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-4 py-3">
           <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
           <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Profile updated successfully!</p>
+        </div>
+      )}
+
+      {rawError && (
+        <div
+          ref={errorRef}
+          tabIndex={-1}
+          className="rounded-xl bg-destructive/10 p-4 text-sm font-semibold text-destructive border border-destructive/20 text-center outline-none"
+        >
+          {rawError}
         </div>
       )}
 
@@ -785,7 +958,7 @@ function HospitalProfile() {
                   <Select value={form.type} onValueChange={v => upd("type", v)}>
                     <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["Government Hospital","Private Hospital","Blood Bank","Clinic"].map(t => (
+                      {["Government Hospital", "Private Hospital", "Blood Bank", "Clinic"].map(t => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
                       ))}
                     </SelectContent>
@@ -811,21 +984,21 @@ function HospitalProfile() {
                 <Input type="email" value={form.email} onChange={e => upd("email", e.target.value)} className="rounded-xl" />
               </div>
               <div className="flex gap-3">
-                <Button className="rounded-xl gap-2 shadow-sm shadow-primary/20" onClick={handleSave}>
-                  <CheckCircle2 className="h-4 w-4" />Save Changes
+                <Button className="rounded-xl gap-2 shadow-sm shadow-primary/20" onClick={handleSave} disabled={saving}>
+                  <CheckCircle2 className="h-4 w-4" />{saving ? "Saving..." : "Save Changes"}
                 </Button>
-                <Button variant="outline" className="rounded-xl" onClick={() => setEditMode(false)}>Cancel</Button>
+                <Button variant="outline" className="rounded-xl" onClick={() => { setEditMode(false); setForm({ ...hosp }); setRawError("") }}>Cancel</Button>
               </div>
             </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2">
               <Row label="Hospital Name" value={form.name} />
               <Row label="Hospital Type" value={form.type} />
-              <Row label="Reg. Number"   value={form.regNumber} />
-              <Row label="Email"         value={form.email} />
-              <Row label="Full Address"  value={form.address} wide />
-              <Row label="City"          value={form.city} />
-              <Row label="District"      value={form.district} />
+              <Row label="Reg. Number" value={form.regNumber} />
+              <Row label="Email" value={form.email} />
+              <Row label="Full Address" value={form.address} wide />
+              <Row label="City" value={form.city} />
+              <Row label="District" value={form.district} />
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Verification</p>
                 <Badge className="mt-1 w-fit rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs">✓ Verified</Badge>
@@ -856,13 +1029,13 @@ function HospitalProfile() {
               </div>
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <Label className="text-sm font-medium">Contact Number *</Label>
-                <Input type="tel" value={form.contactNumber} onChange={e => upd("contactNumber", e.target.value)} className="rounded-xl" />
+                <Input type="tel" value={form.contactNumber} onChange={e => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); upd("contactNumber", val); }} className="rounded-xl" placeholder="10-digit mobile number" />
               </div>
             </>
           ) : (
             <>
               <Row label="Contact Person" value={form.contactPerson} />
-              <Row label="Designation"   value={form.designation} />
+              <Row label="Designation" value={form.designation} />
               <Row label="Contact Number" value={form.contactNumber} />
             </>
           )}
@@ -881,7 +1054,15 @@ function HospitalProfile() {
           </div>
         </div>
         <Button variant="outline" className="rounded-xl gap-2" asChild>
-          <Link href="/hospital/login"><LogOut className="h-4 w-4" />Logout</Link>
+          <Link
+            href="/hospital/login"
+            onClick={() => {
+              clearHospitalAuth()
+            }}
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Link>
         </Button>
       </div>
 
@@ -920,161 +1101,294 @@ function HospitalProfile() {
 /* ═══════════════════════════════════════════════════════════
    DASHBOARD SHELL — pixel-identical to donor DonorDashboard
 ═══════════════════════════════════════════════════════════ */
-export default function HospitalDashboard() {
-  const [activeTab,   setActiveTab]   = useState(0)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [requests,    setRequests]    = useState(INIT_REQUESTS)
+const getHospitalToken = () => {
+  if (typeof window === 'undefined') return null
+  const token = sessionStorage.getItem('hospitalToken')
+  if (token) return token
+  const legacy = localStorage.getItem('hospitalToken') || localStorage.getItem('token')
+  if (legacy) {
+    sessionStorage.setItem('hospitalToken', legacy)
+    localStorage.removeItem('hospitalToken')
+    localStorage.removeItem('token')
+    return legacy
+  }
+  return null
+}
+const getHospitalUser = () => {
+  if (typeof window === 'undefined') return null
+  const user = sessionStorage.getItem('hospitalUser')
+  if (user) return user
+  const legacy = localStorage.getItem('hospitalUser') || localStorage.getItem('user')
+  if (legacy) {
+    sessionStorage.setItem('hospitalUser', legacy)
+    localStorage.removeItem('hospitalUser')
+    localStorage.removeItem('user')
+    return legacy
+  }
+  return null
+}
+const clearHospitalAuth = () => {
+  if (typeof window === 'undefined') return
+  sessionStorage.removeItem('hospitalToken')
+  sessionStorage.removeItem('hospitalUser')
+  localStorage.removeItem('hospitalToken')
+  localStorage.removeItem('hospitalUser')
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+}
 
+export default function HospitalDashboard() {
+  const router = useRouter()
+  const [activeTab, setActiveTab] = React.useState(0)
+  const [userData, setUserData] = React.useState(DEFAULT_HOSPITAL)
+  const hosp = userData; // Required for main component inline references
+  const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  const [requests, setRequests] = React.useState(INIT_REQUESTS)
+  const [donors, setDonors] = React.useState<any[]>([])
   const pending = requests.filter(r => r.status === "Pending").length
 
-  const addRequest = (req: any) => {
-    setRequests(prev => [{ ...req, id: `REQ-${String(prev.length + 1).padStart(3, "0")}` }, ...prev])
+  React.useEffect(() => {
+    const mapHospData = (src: any, prev: any) => ({
+      ...prev,
+      id: src.id || prev.id,
+      name: src.name || prev.name,
+      type: src.type || prev.type,
+      regNumber: src.regNumber || prev.regNumber,
+      email: src.email || prev.email,
+      contactPerson: src.contactPerson || prev.contactPerson,
+      designation: src.designation || prev.designation,
+      contactNumber: src.contactNumber || prev.contactNumber,
+      address: src.address || prev.address,
+      city: src.city || prev.city,
+      district: src.district || prev.district,
+      joinedDate: src.created_at ? src.created_at.split('T')[0] : prev.joinedDate,
+      verified: src.status === 'approved',
+    })
+
+    try {
+      const cached = getHospitalUser()
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed.role && parsed.role !== 'hospital') {
+          clearHospitalAuth()
+          router.push('/hospital/login?error=role_mismatch')
+          return
+        }
+        setUserData(prev => mapHospData(parsed, prev))
+      }
+    } catch (e) { }
+
+    const fetchUser = async () => {
+      const token = getHospitalToken()
+      if (!token) { router.push('/hospital/login'); return; }
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/hospital/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUserData(prev => mapHospData(data, prev))
+          sessionStorage.setItem('hospitalUser', JSON.stringify(data))
+        } else if (res.status === 401 || res.status === 403) {
+          clearHospitalAuth()
+          const isRoleMismatch = (await res.text()).toLowerCase().includes('permission') || res.status === 403
+          router.push(`/hospital/login?error=${isRoleMismatch ? 'role_mismatch' : 'session_expired'}`)
+        }
+      } catch (err) { }
+    }
+    fetchUser()
+  }, [router])
+
+  React.useEffect(() => {
+    if (!userData.city) return
+    const fetchDonors = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/donors/search?city=${userData.city}`)
+        if (res.ok) {
+          const data = await res.json()
+          setDonors(data.map((d: any) => ({ ...d, eligible: d.eligible === 1 })))
+        }
+      } catch (err) { console.error(err) }
+    }
+    fetchDonors()
+  }, [userData.city])
+
+  const fetchRequests = async () => {
+    const token = getHospitalToken()
+    if (!token) return
+    try {
+      const res = await fetch('http://localhost:5000/api/requests/hospital', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setRequests(data.map((r: any) => ({
+          id: `REQ-${r.id}`,
+          bg: r.bloodGroup,
+          units: r.units,
+          urgency: r.urgency,
+          status: r.status,
+          date: r.created_at,
+          donorName: r.donorName,
+          donorMobile: r.donorMobile
+        })))
+      }
+    } catch (err) { console.error(err) }
   }
 
+  const deleteRequest = async (id: string) => {
+    const token = getHospitalToken()
+    if (!token) return
+    try {
+      const res = await fetch(`http://localhost:5000/api/requests/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        fetchRequests()
+      }
+    } catch (err) { console.error(err) }
+  }
+
+  React.useEffect(() => {
+    if (userData.id) fetchRequests()
+  }, [userData.id])
+
   const VIEWS = [
-    <Overview         key="o"  requests={requests} setTab={setActiveTab} />,
-    <FindDonors       key="fd" />,
-    <EmergencyRequest key="er" onSubmit={addRequest} />,
-    <RequestHistory   key="rh" requests={requests} />,
-    <HospitalProfile  key="hp" />,
+    <Overview key="o" requests={requests} donors={donors} setTab={setActiveTab} />,
+    <FindDonors key="fd" onSent={fetchRequests} />,
+    <EmergencyRequest key="er" onSent={fetchRequests} />,
+    <RequestHistory key="rh" requests={requests} onDelete={deleteRequest} />,
+    <HospitalProfile key="hp" />,
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <HospContext.Provider value={userData}>
+      <div className="min-h-screen bg-background">
 
-      {/* ── Topbar — copy-paste from donor, swapping blood group chip for hospital chip ── */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-8">
+        {/* ── Topbar — copy-paste from donor, swapping blood group chip for hospital chip ── */}
+        <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+          <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 lg:px-6">
 
-          {/* Left */}
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="md:hidden h-9 w-9"
-              onClick={() => setSidebarOpen(s => !s)}>
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/25">
-                <Heart className="h-4 w-4 text-primary-foreground" fill="currentColor" />
-              </div>
-              <span className="text-lg font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
-                BloodLink
-              </span>
-            </Link>
-          </div>
-
-          {/* Right: hospital chip — same layout as donor blood group chip */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-1.5">
-              {/* Hospital icon + green dot — mirrors blood group badge + green dot */}
-              <div className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                <Building2 className="h-4 w-4 text-primary" />
-                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-xs font-semibold text-foreground leading-none">{HOSPITAL.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Verified ✓</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Body: sidebar + main — exact same structure as donor ── */}
-      <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
-        <div className="flex gap-6">
-
-          {/* Sidebar — identical markup/classes to donor */}
-          <aside className={cn(
-            "fixed inset-y-0 left-0 z-40 w-64 bg-background border-r border-border pt-20 pb-6 px-3 transition-transform duration-300",
-            "md:static md:translate-x-0 md:border-0 md:pt-0 md:pb-0 md:w-56 md:shrink-0",
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          )}>
-
-            {/* Hospital card in sidebar — mirrors donor blood group card */}
-            <div className="rounded-2xl border border-border bg-card p-4 mb-4">
-              <div className="flex flex-col items-center text-center gap-2">
-                <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/25">
-                    <Building2 className="h-6 w-6" />
-                  </div>
-                  <div className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-card bg-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground">{HOSPITAL.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-                    <MapPin className="h-3 w-3" />{HOSPITAL.city}
-                  </p>
-                </div>
-                <Badge className="rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 text-xs">
-                  ✓ Verified
-                </Badge>
-              </div>
-            </div>
-
-            {/* Nav — identical to donor */}
-            <nav className="flex flex-col gap-1">
-              {NAV.map((item, i) => (
-                <button key={item.label}
-                  onClick={() => { setActiveTab(i); setSidebarOpen(false) }}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors text-left",
-                    activeTab === i
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                  )}>
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                  {/* Pending badge on Emergency Request — mirrors donor's request badge */}
-                  {i === 2 && pending > 0 && (
-                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                      {pending}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
-
-            <div className="mt-4 border-t border-border pt-4">
-              <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-muted-foreground hover:text-foreground text-sm" asChild>
-                <Link href="/hospital/login"><LogOut className="h-4 w-4" />Sign Out</Link>
+            {/* Left */}
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9"
+                onClick={() => setSidebarOpen(s => !s)}>
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-            </div>
-          </aside>
-
-          {/* Mobile overlay */}
-          {sidebarOpen && (
-            <div className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-sm md:hidden"
-              onClick={() => setSidebarOpen(false)} />
-          )}
-
-          {/* Main content — identical to donor */}
-          <main className="flex-1 min-w-0">
-            {/* Breadcrumb + page title — pixel-identical to donor */}
-            <div className="mb-6">
-             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                <Link
-                  href="/hospital"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Hospital
-                </Link>
-                <ChevronRight className="h-3 w-3" />
-                <span className="text-foreground font-medium">
-                  {NAV[activeTab].label}
+              <Link href="/" className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/25">
+                  <Heart className="h-4 w-4 text-primary-foreground" fill="currentColor" />
+                </div>
+                <span className="text-lg font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
+                  BloodLink
                 </span>
-              </div>
-              <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
-                {activeTab === 0
-                  ? `Welcome, ${HOSPITAL.name.split(" ")[0]} ${HOSPITAL.name.split(" ")[1]}! 🏥`
-                  : NAV[activeTab].label}
-              </h1>
+              </Link>
             </div>
 
-            {VIEWS[activeTab]}
-          </main>
+            {/* Right: hospital chip — same layout as donor blood group chip */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-1.5">
+                {/* Hospital icon + green dot — mirrors blood group badge + green dot */}
+                <div className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-xs font-semibold text-foreground leading-none">{hosp.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Verified ✓</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
 
+        {/* ── Body: sidebar + main — exact same structure as donor ── */}
+        <div className="mx-auto max-w-screen-2xl px-4 py-6 lg:px-6">
+          <div className="flex gap-6">
+
+            {/* Sidebar — identical markup/classes to donor */}
+            <aside className={cn(
+              "fixed inset-y-0 left-0 z-40 w-64 bg-background border-r border-border pt-20 pb-6 px-3 transition-transform duration-300",
+              "md:static md:translate-x-0 md:border-0 md:pt-0 md:pb-0 md:w-56 md:shrink-0",
+              sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            )}>
+
+              {/* Combined Logout in Nav (matches Donor Dashboard) */}
+
+              {/* Nav — identical to donor */}
+              <nav className="flex flex-col gap-1">
+                {NAV.map((item, i) => (
+                  <button key={item.label}
+                    onClick={() => { setActiveTab(i); setSidebarOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors text-left",
+                      activeTab === i
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}>
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                    {/* Pending badge on Emergency Request — mirrors donor's request badge */}
+                    {i === 2 && pending > 0 && (
+                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                        {pending}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="mt-4 border-t border-border pt-4">
+                <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl text-muted-foreground hover:text-foreground text-sm" asChild>
+                  <Link
+                    href="/hospital/login"
+                    onClick={() => {
+                      clearHospitalAuth()
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </Link>
+                </Button>
+              </div>
+            </aside>
+
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+              <div className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-sm md:hidden"
+                onClick={() => setSidebarOpen(false)} />
+            )}
+
+            {/* Main content — identical to donor */}
+            <main className="flex-1 min-w-0">
+              {/* Breadcrumb + page title — pixel-identical to donor */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <Link
+                    href="/hospital"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Hospital
+                  </Link>
+                  <ChevronRight className="h-3 w-3" />
+                  <span className="text-foreground font-medium">
+                    {NAV[activeTab].label}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
+                  {activeTab === 0
+                    ? `Welcome, ${hosp.name.split(" ")[0]} ${hosp.name.split(" ")[1]}! 🏥`
+                    : NAV[activeTab].label}
+                </h1>
+              </div>
+
+              {VIEWS[activeTab]}
+            </main>
+
+          </div>
         </div>
       </div>
-    </div>
+    </HospContext.Provider>
   )
 }

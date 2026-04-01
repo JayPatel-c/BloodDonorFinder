@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Phone, MessageSquare, MapPin, Clock, Droplets, Filter, Search, X, SlidersHorizontal, Loader2 } from "lucide-react"
+import { Phone, MapPin, Clock, Droplets, Filter, Search, X, SlidersHorizontal, Loader2, Copy, Check } from "lucide-react"
 
 const bloodGroups = ["All", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
@@ -38,6 +38,8 @@ export function DonorSearch() {
   const [showFilters, setShowFilters] = useState(false)
   const [donors, setDonors] = useState<Donor[]>([])
   const [loading, setLoading] = useState(true)
+  const [revealedPhones, setRevealedPhones] = useState<Set<number>>(new Set())
+  const [copiedId, setCopiedId] = useState<number | null>(null)
 
   // Fetch donors from API
   const fetchDonors = async () => {
@@ -81,6 +83,12 @@ export function DonorSearch() {
     setSelectedBloodGroup("All")
     setLocationFilter("")
     setShowAvailableOnly(false)
+  }
+
+  const handleCopy = (id: number, text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
   }
 
   function lastDonationLabel(d: string | null) {
@@ -200,7 +208,7 @@ export function DonorSearch() {
               {donors.map((donor) => (
                 <div
                   key={donor.id}
-                  className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/20 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/[0.04]"
+                  className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/20 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/[0.04] animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
                   {/* Availability indicator bar */}
                   <div className={`absolute top-0 left-0 h-1 w-full ${donor.eligible ? "bg-emerald-500" : "bg-muted"}`} />
@@ -241,15 +249,49 @@ export function DonorSearch() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex gap-2.5">
-                    <Button size="sm" className="flex-1 gap-1.5 rounded-xl" disabled={!donor.eligible}>
-                      <Phone className="h-3.5 w-3.5" />
-                      Call
-                    </Button>
-                    <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl" disabled={!donor.eligible}>
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      Message
-                    </Button>
+                  <div className="mt-4">
+                    {revealedPhones.has(donor.id) && donor.mobile ? (
+                      <div
+                        className="group/phone flex w-full items-center justify-between gap-2 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50 p-2 animate-in zoom-in-95 duration-200"
+                      >
+                        <div className="flex items-center gap-2 pl-2">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-white">
+                            <Phone className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="font-mono text-sm font-bold text-emerald-700 tracking-wider">
+                            {donor.mobile}
+                          </span>
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-lg text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 shrink-0"
+                          onClick={() => handleCopy(donor.id, donor.mobile!)}
+                        >
+                          {copiedId === donor.id ? (
+                            <Check className="h-3.5 w-3.5" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="w-full gap-1.5 rounded-xl font-semibold shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98]"
+                        disabled={!donor.eligible}
+                        onClick={() => {
+                          setRevealedPhones((prev) => {
+                            const next = new Set(prev)
+                            next.add(donor.id)
+                            return next
+                          })
+                        }}
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        {donor.eligible ? "View Contact Number" : "Unavailable for Donation"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

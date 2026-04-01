@@ -59,11 +59,9 @@ function useAnimatedCounter(target: number, duration = 2000) {
 
 /* ──────────────────── Data ──────────────────── */
 
-const stats = [
-  { label: "Active Donors", value: 2480, icon: Users, suffix: "+" },
-  { label: "Partner Hospitals", value: 156, icon: Building2, suffix: "" },
-  { label: "Lives Saved", value: 8320, icon: Heart, suffix: "+" },
-  { label: "Avg Response Time", value: 12, icon: Clock, suffix: " min" },
+const initialStats = [
+  { label: "Active Donors", value: 0, icon: Users, suffix: "+" },
+  { label: "Partner Hospitals", value: 0, icon: Building2, suffix: "" },
 ]
 
 const roleCards = [
@@ -119,7 +117,7 @@ const roleCards = [
 ]
 
 /* ──────────────────── Stat Card ──────────────────── */
-function StatCard({ stat }: { stat: (typeof stats)[0] }) {
+function StatCard({ stat }: { stat: (typeof initialStats)[0] }) {
   const { count, ref } = useAnimatedCounter(stat.value)
   const Icon = stat.icon
 
@@ -150,6 +148,20 @@ function StatCard({ stat }: { stat: (typeof stats)[0] }) {
 /* ──────────────────── Page ──────────────────── */
 
 export default function DashboardPage() {
+  const [dynStats, setDynStats] = useState(initialStats);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/donors/stats')
+      .then(res => res.json())
+      .then(data => {
+        setDynStats([
+          { label: "Active Donors", value: data.activeDonors || 0, icon: Users, suffix: "+" },
+          { label: "Partner Hospitals", value: data.partnerHospitals || 0, icon: Building2, suffix: "" },
+        ])
+      })
+      .catch(console.error)
+  }, [])
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -191,9 +203,9 @@ export default function DashboardPage() {
 
         {/* ── Stats Bar ───────────────────────────────────── */}
         <section className="border-b border-border bg-card/50">
-          <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-              {stats.map((stat) => (
+          <div className="mx-auto max-w-4xl px-4 py-12 lg:px-8">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
+              {dynStats.map((stat) => (
                 <StatCard key={stat.label} stat={stat} />
               ))}
             </div>

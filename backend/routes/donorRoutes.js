@@ -48,5 +48,19 @@ router.put('/availability', authMiddleware('donor'), async (req, res) => {
     res.status(500).json({ error: 'Server error updating availability.' });
   }
 });
+// GET /api/donors/stats — Public endpoint for platform statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const [donors] = await pool.query("SELECT COUNT(*) as total FROM donors WHERE status = 'verified'");
+    const [hospitals] = await pool.query("SELECT COUNT(*) as total FROM hospitals WHERE status = 'approved'");
+    res.json({
+      activeDonors: donors[0].total,
+      partnerHospitals: hospitals[0].total
+    });
+  } catch (error) {
+    console.error('Error fetching public stats:', error);
+    res.status(500).json({ error: 'Server error fetching stats.' });
+  }
+});
 
 module.exports = router;

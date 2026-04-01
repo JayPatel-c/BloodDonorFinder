@@ -54,7 +54,7 @@ exports.updateDonorStatus = async (req, res) => {
 exports.getHospitals = async (req, res) => {
   try {
     const [hospitals] = await pool.query(
-      `SELECT id, name, email, type, regNumber, contactPerson, designation, contactNumber, address, city, district, status, created_at 
+      `SELECT id, name, email, type, regNumber, contactPerson, designation, contactNumber, address, city, district, licenseFile, idProofFile, status, created_at 
        FROM hospitals ORDER BY created_at DESC`
     );
     res.json(hospitals);

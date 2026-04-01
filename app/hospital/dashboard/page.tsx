@@ -497,9 +497,20 @@ function FindDonors({ onSent }: { onSent: () => void }) {
 /* ═══════════════════════════════════════════════════════════
    3. EMERGENCY REQUEST
 ═══════════════════════════════════════════════════════════ */
-function EmergencyRequest({ onSent }: { onSent: () => void }) {
+function EmergencyRequest({ onSent, donors }: { onSent: () => void; donors: any[] }) {
   const hospData = useHosp();
   const [selBG, setSelBG] = useState("")
+  
+  const cityStock = React.useMemo(() => {
+    const stock: Record<string, number> = { "A+": 0, "A-": 0, "B+": 0, "B-": 0, "AB+": 0, "AB-": 0, "O+": 0, "O-": 0 }
+    donors.forEach(d => {
+      if (d.eligible && d.bloodGroup && stock[d.bloodGroup] !== undefined) {
+        stock[d.bloodGroup]++
+      }
+    })
+    return BLOOD_GROUPS.map(bg => ({ bg, n: stock[bg] }))
+  }, [donors])
+
   const [hospName, setHospName] = useState(hospData.name)
   const [units, setUnits] = useState(1)
   const [level, setLevel] = useState<"Normal" | "High" | "Critical">("Critical")
@@ -678,7 +689,7 @@ function EmergencyRequest({ onSent }: { onSent: () => void }) {
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-sm font-semibold text-foreground mb-3">Available in {hospData.city}</p>
           <div className="grid grid-cols-2 gap-2">
-            {CITY_STOCK.map(s => (
+            {cityStock.map(s => (
               <div key={s.bg} className="flex items-center gap-2.5 rounded-xl bg-muted/40 border border-border/60 px-3 py-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-[10px] font-black font-mono shadow-sm shadow-primary/20 shrink-0">{s.bg}</div>
                 <div>
@@ -983,12 +994,7 @@ function HospitalProfile() {
                 <Label className="text-sm font-medium">Email</Label>
                 <Input type="email" value={form.email} onChange={e => upd("email", e.target.value)} className="rounded-xl" />
               </div>
-              <div className="flex gap-3">
-                <Button className="rounded-xl gap-2 shadow-sm shadow-primary/20" onClick={handleSave} disabled={saving}>
-                  <CheckCircle2 className="h-4 w-4" />{saving ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button variant="outline" className="rounded-xl" onClick={() => { setEditMode(false); setForm({ ...hosp }); setRawError("") }}>Cancel</Button>
-              </div>
+
             </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2">
@@ -1041,6 +1047,15 @@ function HospitalProfile() {
           )}
         </div>
       </div>
+
+      {editMode && (
+        <div className="flex justify-end gap-3 mt-2">
+          <Button variant="outline" className="rounded-xl" onClick={() => { setEditMode(false); setForm({ ...hosp }); setRawError("") }}>Cancel</Button>
+          <Button className="rounded-xl gap-2 shadow-sm shadow-primary/20" onClick={handleSave} disabled={saving}>
+            <CheckCircle2 className="h-4 w-4" />{saving ? "Saving..." : "Save All Changes"}
+          </Button>
+        </div>
+      )}
 
       {/* Sign out — exact same as donor Security */}
       <div className="rounded-2xl border border-border bg-card p-6 flex items-center justify-between">
@@ -1257,7 +1272,7 @@ export default function HospitalDashboard() {
   const VIEWS = [
     <Overview key="o" requests={requests} donors={donors} setTab={setActiveTab} />,
     <FindDonors key="fd" onSent={fetchRequests} />,
-    <EmergencyRequest key="er" onSent={fetchRequests} />,
+    <EmergencyRequest key="er" onSent={fetchRequests} donors={donors} />,
     <RequestHistory key="rh" requests={requests} onDelete={deleteRequest} />,
     <HospitalProfile key="hp" />,
   ]
@@ -1329,12 +1344,7 @@ export default function HospitalDashboard() {
                     )}>
                     <item.icon className="h-4 w-4 shrink-0" />
                     {item.label}
-                    {/* Pending badge on Emergency Request — mirrors donor's request badge */}
-                    {i === 2 && pending > 0 && (
-                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                        {pending}
-                      </span>
-                    )}
+
                   </button>
                 ))}
               </nav>

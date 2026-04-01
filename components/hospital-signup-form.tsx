@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Building2, User, MapPin, Lock, ChevronLeft, ChevronRight, Check, Upload, FileText, Shield, Eye, EyeOff } from "lucide-react"
+import { Building2, User, MapPin, Lock, ChevronLeft, ChevronRight, Check, Upload, FileText, Shield, Eye, EyeOff, X as XIcon } from "lucide-react"
 
 const formSteps = [
   { id: 1, title: "Hospital Info", icon: Building2 },
@@ -22,6 +22,10 @@ export function HospitalSignupForm() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [licenseFile, setLicenseFile] = useState<File | null>(null)
+  const [idProofFile, setIdProofFile] = useState<File | null>(null)
+  const licenseInputRef = useRef<HTMLInputElement>(null)
+  const idProofInputRef = useRef<HTMLInputElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
 
   const setError = (msg: string) => {
@@ -67,6 +71,7 @@ export function HospitalSignupForm() {
       }
       if (!formData.hospType) return setError("Please select a hospital type.");
       if (!formData.regNumber.trim()) return setError("Hospital Registration Number is required.");
+      if (!licenseFile) return setError("Hospital License Document Upload is required.");
     }
     
     if (currentStep === 2) {
@@ -79,6 +84,7 @@ export function HospitalSignupForm() {
       if (!/^\d{10}$/.test(formData.contactNumber)) {
         return setError("Mobile number must be exactly 10 digits.");
       }
+      if (!idProofFile) return setError("Authorized Person ID Proof Upload is required.");
     }
     
     if (currentStep === 3) {
@@ -109,22 +115,24 @@ export function HospitalSignupForm() {
     setLoading(true);
 
     try {
+      const fd = new FormData();
+      fd.append("name", formData.hospitalName);
+      fd.append("email", formData.hospEmail);
+      fd.append("password", formData.hospPassword);
+      fd.append("type", formData.hospType);
+      fd.append("city", formData.hospCity);
+      fd.append("regNumber", formData.regNumber);
+      fd.append("contactPerson", formData.personName);
+      fd.append("designation", formData.designation);
+      fd.append("contactNumber", formData.contactNumber);
+      fd.append("address", formData.hospAddress);
+      fd.append("district", formData.hospDistrict);
+      if (licenseFile) fd.append("licenseFile", licenseFile);
+      if (idProofFile) fd.append("idProofFile", idProofFile);
+
       const res = await fetch("http://localhost:5000/api/auth/hospital/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.hospitalName,
-          email: formData.hospEmail,
-          password: formData.hospPassword,
-          type: formData.hospType,
-          city: formData.hospCity,
-          regNumber: formData.regNumber,
-          contactPerson: formData.personName,
-          designation: formData.designation,
-          contactNumber: formData.contactNumber,
-          address: formData.hospAddress,
-          district: formData.hospDistrict
-        }),
+        body: fd,
       });
       const data = await res.json();
       
@@ -231,19 +239,43 @@ export function HospitalSignupForm() {
 
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium">License Upload</Label>
-              <div className="group flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/30 p-10 transition-all hover:border-primary/30 hover:bg-primary/[0.02]">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 transition-transform group-hover:scale-105">
-                    <Upload className="h-6 w-6 text-primary" />
+              <input
+                ref={licenseInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
+                onChange={(e) => { if (e.target.files?.[0]) setLicenseFile(e.target.files[0]); }}
+              />
+              {licenseFile ? (
+                <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+                      <FileText className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-emerald-700 truncate max-w-[200px]">{licenseFile.name}</p>
+                      <p className="text-xs text-emerald-600">{(licenseFile.size / 1024).toFixed(1)} KB</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-foreground font-medium">
-                      <span className="text-primary">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">PDF, JPG, PNG (max 5MB)</p>
+                  <button type="button" onClick={() => { setLicenseFile(null); if (licenseInputRef.current) licenseInputRef.current.value = ''; }} className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors">
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div onClick={() => licenseInputRef.current?.click()} className="group flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/30 p-10 transition-all hover:border-primary/30 hover:bg-primary/[0.02]">
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 transition-transform group-hover:scale-105">
+                      <Upload className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-foreground font-medium">
+                        <span className="text-primary">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">PDF, JPG, PNG (max 5MB)</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -285,19 +317,43 @@ export function HospitalSignupForm() {
 
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium">ID Proof Upload</Label>
-              <div className="group flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/30 p-10 transition-all hover:border-primary/30 hover:bg-primary/[0.02]">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 transition-transform group-hover:scale-105">
-                    <FileText className="h-6 w-6 text-primary" />
+              <input
+                ref={idProofInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
+                onChange={(e) => { if (e.target.files?.[0]) setIdProofFile(e.target.files[0]); }}
+              />
+              {idProofFile ? (
+                <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+                      <FileText className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-emerald-700 truncate max-w-[200px]">{idProofFile.name}</p>
+                      <p className="text-xs text-emerald-600">{(idProofFile.size / 1024).toFixed(1)} KB</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-foreground font-medium">
-                      <span className="text-primary">Upload ID proof</span>
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">Aadhar, PAN, or other govt. ID</p>
+                  <button type="button" onClick={() => { setIdProofFile(null); if (idProofInputRef.current) idProofInputRef.current.value = ''; }} className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors">
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div onClick={() => idProofInputRef.current?.click()} className="group flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/30 p-10 transition-all hover:border-primary/30 hover:bg-primary/[0.02]">
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 transition-transform group-hover:scale-105">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-foreground font-medium">
+                        <span className="text-primary">Upload ID proof</span>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Aadhar, PAN, or other govt. ID</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

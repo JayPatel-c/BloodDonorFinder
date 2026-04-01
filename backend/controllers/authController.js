@@ -120,12 +120,20 @@ exports.registerHospital = async (req, res) => {
       return res.status(400).json({ error: 'A hospital with this email is already registered.' });
     }
 
+    // Get uploaded file paths from multer
+    const licenseFile = req.files?.licenseFile?.[0]?.filename || null;
+    const idProofFile = req.files?.idProofFile?.[0]?.filename || null;
+
+    if (!licenseFile || !idProofFile) {
+      return res.status(400).json({ error: 'Both Hospital License Document and Authorized Person ID Proof are required.' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await pool.query(
-      `INSERT INTO hospitals (name, email, password, type, city, regNumber, contactPerson, designation, contactNumber, address, district, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, email, hashedPassword, type, city, regNumber || null, contactPerson || null, designation || null, contactNumber || null, address || null, district || null, 'pending']
+      `INSERT INTO hospitals (name, email, password, type, city, regNumber, contactPerson, designation, contactNumber, address, district, licenseFile, idProofFile, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, email, hashedPassword, type, city, regNumber || null, contactPerson || null, designation || null, contactNumber || null, address || null, district || null, licenseFile, idProofFile, 'pending']
     );
 
     res.status(201).json({ message: 'Hospital registration requested successfully. Pending admin approval.', hospitalId: result.insertId });

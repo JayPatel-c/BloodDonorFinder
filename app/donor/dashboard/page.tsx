@@ -659,9 +659,7 @@ function UpdateProfile() {
             <Label className="text-sm font-medium">PIN Code</Label>
             <Input value={form.pin} onChange={e => { const val = e.target.value.replace(/\D/g, '').slice(0, 6); upd("pin", val); }} className="rounded-xl" placeholder="6-digit PIN" />
           </div>
-          <Button variant="outline" className="w-full gap-2 rounded-xl border-dashed border-primary/30 text-primary hover:bg-primary/5">
-            <MapPin className="h-4 w-4" />Auto-detect My Location (GPS)
-          </Button>
+
         </div>
       </div>
 

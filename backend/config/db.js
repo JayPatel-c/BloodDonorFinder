@@ -82,10 +82,20 @@ const initDB = async () => {
         address VARCHAR(255),
         city VARCHAR(100) NOT NULL,
         district VARCHAR(100),
+        licenseFile VARCHAR(255) DEFAULT NULL,
+        idProofFile VARCHAR(255) DEFAULT NULL,
         status ENUM('pending', 'approved', 'blocked') DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Add file columns if they don't exist (for existing tables)
+    try {
+      await pool.query(`ALTER TABLE hospitals ADD COLUMN licenseFile VARCHAR(255) DEFAULT NULL`);
+    } catch (e) { /* Column already exists */ }
+    try {
+      await pool.query(`ALTER TABLE hospitals ADD COLUMN idProofFile VARCHAR(255) DEFAULT NULL`);
+    } catch (e) { /* Column already exists */ }
 
     // Create Admins table
     await pool.query(`

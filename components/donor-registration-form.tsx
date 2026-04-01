@@ -555,10 +555,7 @@ export function DonorRegistrationForm() {
               />
             </div>
 
-            <Button variant="outline" className="w-full gap-2 rounded-xl border-dashed border-primary/30 text-primary hover:bg-primary/5">
-              <MapPin className="h-4 w-4" />
-              Auto-detect My Location (GPS)
-            </Button>
+
           </div>
         </div>
       )}

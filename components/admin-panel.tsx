@@ -60,6 +60,7 @@ export function AdminPanel() {
   const [stats, setStats] = useState({ totalDonors: 0, totalHospitals: 0, donations: 0, activeRequests: 0 })
   const [selectedDonor, setSelectedDonor] = useState<any | null>(null)
   const [selectedHospital, setSelectedHospital] = useState<any | null>(null)
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -252,6 +253,28 @@ export function AdminPanel() {
 
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
 
+          {/* ── Image Lightbox ── */}
+          {lightboxImage && (
+            <>
+              <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm" onClick={() => setLightboxImage(null)} />
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" onClick={() => setLightboxImage(null)}>
+                <div className="relative max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setLightboxImage(null)}
+                    className="absolute -top-3 -right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-card border border-border shadow-lg text-foreground hover:bg-accent transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <img
+                    src={lightboxImage}
+                    alt="Document Preview"
+                    className="w-full h-full object-contain rounded-2xl shadow-2xl"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           {/* ── Donor Detail Modal ── */}
           {selectedDonor && (
             <>
@@ -426,6 +449,93 @@ export function AdminPanel() {
                       <span className="font-semibold text-foreground">{selectedHospital.address || "—"}</span>
                     </div>
                   </div>
+
+                  {/* Uploaded Documents */}
+                  {(selectedHospital.licenseFile || selectedHospital.idProofFile) ? (
+                    <div className="mt-2">
+                      <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        Uploaded Documents
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* License File */}
+                        <div className="rounded-xl border border-border overflow-hidden">
+                          <div className="bg-muted/30 px-4 py-2.5 border-b border-border">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Hospital License</span>
+                          </div>
+                          {selectedHospital.licenseFile ? (
+                            <div className="p-3">
+                              {selectedHospital.licenseFile.match(/\.(jpg|jpeg|png)$/i) ? (
+                                <img
+                                  src={`http://localhost:5000/uploads/${selectedHospital.licenseFile}`}
+                                  alt="License"
+                                  className="w-full rounded-lg border border-border object-contain max-h-48 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => setLightboxImage(`http://localhost:5000/uploads/${selectedHospital.licenseFile}`)}
+                                />
+                              ) : (
+                                <a
+                                  href={`http://localhost:5000/uploads/${selectedHospital.licenseFile}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors"
+                                >
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-foreground">View PDF</p>
+                                    <p className="text-xs text-muted-foreground">{selectedHospital.licenseFile}</p>
+                                  </div>
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="p-4 text-center text-sm text-muted-foreground">Not uploaded</div>
+                          )}
+                        </div>
+
+                        {/* ID Proof File */}
+                        <div className="rounded-xl border border-border overflow-hidden">
+                          <div className="bg-muted/30 px-4 py-2.5 border-b border-border">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">ID Proof</span>
+                          </div>
+                          {selectedHospital.idProofFile ? (
+                            <div className="p-3">
+                              {selectedHospital.idProofFile.match(/\.(jpg|jpeg|png)$/i) ? (
+                                <img
+                                  src={`http://localhost:5000/uploads/${selectedHospital.idProofFile}`}
+                                  alt="ID Proof"
+                                  className="w-full rounded-lg border border-border object-contain max-h-48 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => setLightboxImage(`http://localhost:5000/uploads/${selectedHospital.idProofFile}`)}
+                                />
+                              ) : (
+                                <a
+                                  href={`http://localhost:5000/uploads/${selectedHospital.idProofFile}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors"
+                                >
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-foreground">View PDF</p>
+                                    <p className="text-xs text-muted-foreground">{selectedHospital.idProofFile}</p>
+                                  </div>
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="p-4 text-center text-sm text-muted-foreground">Not uploaded</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                      No documents uploaded by this hospital.
+                    </div>
+                  )}
 
                   <div className="mt-2 flex items-center justify-between border-t border-border pt-6">
                     <div className="flex w-full items-center gap-3">

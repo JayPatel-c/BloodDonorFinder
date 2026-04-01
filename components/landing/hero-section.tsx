@@ -46,8 +46,24 @@ export function HeroSection() {
   const [selectedBloodGroup, setSelectedBloodGroup] = useState("")
   const router = useRouter()
 
+  const [statsData, setStatsData] = useState([
+    { value: 0, suffix: "+", label: "Registered Donors", icon: "heart" },
+    { value: 0, suffix: "+", label: "Hospitals Connected", icon: "building" },
+    { value: 24, suffix: "/7", label: "Availability", icon: "clock" },
+  ])
+
   useEffect(() => {
     setIsVisible(true)
+    fetch('http://localhost:5000/api/donors/stats')
+      .then(res => res.json())
+      .then(data => {
+        setStatsData([
+          { value: data.activeDonors || 0, suffix: "+", label: "Registered Donors", icon: "heart" },
+          { value: data.partnerHospitals || 0, suffix: "+", label: "Hospitals Connected", icon: "building" },
+          { value: 24, suffix: "/7", label: "Availability", icon: "clock" },
+        ])
+      })
+      .catch(console.error)
   }, [])
 
   const handleSearch = () => {
@@ -179,16 +195,11 @@ export function HeroSection() {
 
         {/* Stats Bar */}
         <div
-          className={`mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-4 md:grid-cols-4 transition-all delay-500 duration-700 ${
+          className={`mx-auto mt-20 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3 transition-all delay-500 duration-700 ${
             isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           }`}
         >
-          {[
-            { value: 10000, suffix: "+", label: "Registered Donors", icon: "heart" },
-            { value: 500, suffix: "+", label: "Hospitals Connected", icon: "building" },
-            { value: 24, suffix: "/7", label: "Availability", icon: "clock" },
-            { value: 50, suffix: "%", label: "Faster Response", icon: "trending" },
-          ].map((stat) => (
+          {statsData.map((stat) => (
             <div
               key={stat.label}
               className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 text-center transition-all hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.04]"

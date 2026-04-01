@@ -8,18 +8,13 @@ const quickLinks = [
   { href: "/dashboard", label: "Dashboard" },
 ]
 
-const supportLinks = [
-  { href: "#", label: "About Us" },
-  { href: "#", label: "Contact" },
-  { href: "#", label: "Privacy Policy" },
-  { href: "#", label: "Terms of Service" },
-]
+
 
 export function Footer() {
   return (
     <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-16 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/25">
@@ -55,18 +50,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-foreground">Support</h3>
-            <ul className="flex flex-col gap-3">
-              {supportLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className="text-sm text-muted-foreground transition-colors hover:text-primary">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+
 
           <div>
             <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-foreground">Emergency Contact</h3>
@@ -86,7 +70,7 @@ export function Footer() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Email Support</p>
-                  <p className="text-sm font-semibold text-foreground">help@bloodlink.org</p>
+                  <p className="text-sm font-semibold text-foreground">bloodlink247@gmail.com</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

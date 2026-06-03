@@ -1,11 +1,40 @@
+# Dependencies (auto-installed via npm install)
+node_modules/
+
+# Next.js build output (auto-generated)
+.next/
+
+# Environment variables (contains secrets like DB passwords, JWT keys)
+.env
+.env*.local
+
+# User uploaded files (not source code)
+backend/uploads/
+
+# Lock files (keep only one package manager's lock file)
+pnpm-lock.yaml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
 # v0 runtime files (should only exist in preview, not in git)
 __v0_runtime_loader.js
 __v0_devtools.tsx
 __v0_jsx-dev-runtime.ts
 
-# Common ignores
-node_modules/
-.next/
-.env*.local
-.DS_Store
-.env
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Standard build outputs
+build/
+dist/
+out/
+
+# Testing
+coverage/
